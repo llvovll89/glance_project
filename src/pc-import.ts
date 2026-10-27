@@ -48,7 +48,12 @@ export const windowsCollector = String.raw`& {
   }
 }`;
 
-export const cmdCollector = `powershell.exe -NoProfile -Command "${windowsCollector.replace(/\s*\r?\n\s*/g, ' ').replaceAll('"', '\\"')}"`;
+export function powerShellForCmd(script: string): string {
+  const utf16 = Array.from(script, character => `${character}\0`).join('');
+  return `powershell.exe -NoProfile -EncodedCommand ${btoa(utf16)}`;
+}
+
+export const cmdCollector = powerShellForCmd(windowsCollector);
 
 export const macCollector = String.raw`result=$({
   printf 'hanno-specs-v1\tmacos\n'

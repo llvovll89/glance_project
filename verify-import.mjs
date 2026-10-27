@@ -23,18 +23,36 @@ try {
     assert.equal(imp.parseProfileImport(`hanno-specs-v1\t${platform}\ninvalid-line`).ok, false);
   }
   assert.equal(imp.parseProfileImport('hanno-specs-v1\tother\ncpu\tExample processor').ok, false);
-  assert.match(imp.cmdCollector, /^powershell\.exe -NoProfile -Command/);
+  assert.match(imp.cmdCollector, /^powershell\.exe -NoProfile -EncodedCommand /);
+  assert.ok(imp.cmdCollector.length < 8191, 'CMD command exceeds the Windows command-line limit');
+  assert.equal(Buffer.from(imp.cmdCollector.split(' ').at(-1), 'base64').toString('utf16le'), imp.windowsCollector);
   const root = mkdtempSync(join(tmpdir(), 'hanno-collector-test-'));
   const collectorPath = join(root, 'collector.ps1');
   writeFileSync(collectorPath, imp.windowsCollector);
   const parseOnly = '$tokens=$null; $errors=$null; [void][System.Management.Automation.Language.Parser]::ParseFile($env:HANNO_COLLECTOR_TEST,[ref]$tokens,[ref]$errors); if($errors.Count){$errors | ForEach-Object { Write-Error $_.Message }; exit 1}; Write-Output "COLLECTOR_SYNTAX_PASS"';
   const result = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', parseOnly], { encoding: 'utf8', windowsHide: true, env: { ...process.env, HANNO_COLLECTOR_TEST: collectorPath } });
   assert.equal(result.status, 0, result.stderr || result.error?.message); assert.match(result.stdout, /COLLECTOR_SYNTAX_PASS/);
+  const mockHardware = `function Get-CimInstance { param([string]$ClassName)
+    switch ($ClassName) {
+      Win32_ComputerSystem { [pscustomobject]@{ Model='Test PC'; PCSystemType=1 } }
+      Win32_OperatingSystem { [pscustomobject]@{ Caption='Windows 11'; Version='10.0'; BuildNumber='12345' } }
+      Win32_Processor { [pscustomobject]@{ Name='Test CPU' } }
+      Win32_PhysicalMemory { [pscustomobject]@{ Capacity=17179869184 } }
+      Win32_VideoController { [pscustomobject]@{ Name='Test GPU' } }
+      Win32_DiskDrive { [pscustomobject]@{ Model='Test SSD'; Size=512000000000 } }
+    }
+  }
+  function Set-Clipboard { param($Value) }
+  `;
+  const cmdResult = spawnSync('cmd.exe', ['/d', '/s', '/c', imp.powerShellForCmd(mockHardware + imp.windowsCollector)], { encoding: 'utf8', windowsHide: true });
+  assert.equal(cmdResult.status, 0, cmdResult.stderr || cmdResult.error?.message);
+  assert.match(cmdResult.stdout, /"cpu"\s*:\s*"Test CPU"/);
+  assert.match(cmdResult.stdout, /"ram"\s*:\s*"16 GiB"/);
   for (const platform of ['mac', 'linux']) {
     const shellPath = join(root, `${platform}.sh`);
     writeFileSync(shellPath, imp.collectors[platform].command);
     const syntax = spawnSync('bash', ['-n', shellPath], { encoding: 'utf8', windowsHide: true });
     assert.equal(syntax.status, 0, syntax.stderr || syntax.error?.message);
   }
-  console.log('PASS: Windows/macOS/Linux import schema, invalid data, preview merge, unknown field exclusion, PowerShell and shell syntax; collectors are not executed in tests');
+  console.log('PASS: Windows/macOS/Linux import schema, invalid data, preview merge, unknown field exclusion, CMD execution with mocked hardware and PowerShell/shell syntax; real hardware is not queried in tests');
 } finally { await server.close(); }
