@@ -2,7 +2,6 @@
 .pc-form{min-width:0;padding:30px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-panel)}
 .pc-form-heading{display:grid;gap:6px;margin-bottom:24px}.pc-form-heading h3{font-size:20px}.pc-form-heading>span{color:var(--muted);font-size:12px;line-height:1.7}
 .pc-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 18px}.pc-field{min-width:0;display:flex;flex-direction:column;gap:8px}.pc-field-wide{grid-column:1/-1}.pc-field label{font-size:13px;font-weight:650;line-height:1.6}
-.pc-field input,.pc-field select{width:100%;min-width:0;min-height:48px;padding:12px;border:1px solid var(--control-line);border-radius:var(--radius-control);background:var(--page);color:var(--ink);font-size:16px;line-height:1.5}.pc-field input::placeholder{color:var(--muted);opacity:1;font-size:13px}
 .pc-field p{font-size:12px;line-height:1.8;color:var(--muted)}.pc-storage-note{border-top:1px solid var(--line);padding-top:20px;margin-top:24px;font-size:12px;color:var(--muted)}
 .pc-form-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px;margin-top:20px}.pc-form-actions .text-button{font-size:12px}.pc-status{font-size:13px;line-height:1.8;color:var(--accent);margin-top:14px;min-height:24px}
 .pc-delete-confirm{padding:16px;margin-top:16px;border:1px solid var(--control-line);border-radius:var(--radius-control);background:var(--page)}.pc-delete-confirm p{font-size:14px}.pc-delete-confirm>div{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}.pc-delete-confirm .button{font-size:12px}

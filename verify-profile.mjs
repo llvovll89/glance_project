@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'vite';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
+import { MantineProvider } from '@mantine/core';
 const server = await createServer({ server: { middlewareMode: true, hmr: false }, appType: 'custom' });
 try {
   const p = await server.ssrLoadModule('/src/pc-profile.ts');
@@ -29,11 +30,12 @@ try {
   const cleaned = p.normalizeProfile({ os: 'toString', deviceType: 'spaceship', cpu: 'X'.repeat(200), ram: { invalid: true }, gpu: 'A\nB' });
   assert.equal(cleaned.os, 'unknown'); assert.equal(cleaned.deviceType, 'unknown'); assert.equal(cleaned.cpu.length, 80); assert.equal(cleaned.ram, ''); assert.equal(cleaned.gpu, 'A B');
   const { default: Panel } = await server.ssrLoadModule('/src/PcProfile.tsx');
-  const populated = renderToString(createElement(Panel, { profile, onSave() {}, onTopic() {}, onGuide() {} }));
+  const renderPanel = props => renderToString(createElement(MantineProvider, null, createElement(Panel, props)));
+  const populated = renderPanel({ profile, onSave() {}, onTopic() {}, onGuide() {} });
   assert.ok(populated.includes('My PC')); assert.ok(populated.includes('16 GB')); assert.ok(populated.includes('pc-ram-help'));
-  const empty = renderToString(createElement(Panel, { profile: null, onSave() {}, onTopic() {}, onGuide() {} }));
+  const empty = renderPanel({ profile: null, onSave() {}, onTopic() {}, onGuide() {} });
   assert.ok(empty.includes('사양 기록하기'));
-  const mac = renderToString(createElement(Panel, { profile: { ...profile, os: 'macos' }, onSave() {}, onTopic() {}, onGuide() {} }));
+  const mac = renderPanel({ profile: { ...profile, os: 'macos' }, onSave() {}, onTopic() {}, onGuide() {} });
   assert.ok(mac.includes('pc-platform-note')); assert.ok(!mac.includes('필요할 때 확인할 가이드'));
   console.log('PASS: profile save/read/delete, malformed data, unsupported schema, blocked storage, input normalization, topic targets, populated/empty/non-Windows rendering');
 } finally { await server.close(); }

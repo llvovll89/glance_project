@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'vite';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
+import { MantineProvider } from '@mantine/core';
 const server = await createServer({ server: { middlewareMode: true, hmr: false }, appType: 'custom' });
 try {
   const lab = await server.ssrLoadModule('/src/shell-lab.ts');
@@ -43,7 +44,7 @@ try {
   const direct = lab.runLabCommand(lab.createLabState('cmd'), 'type "C:\\Users\\Learner\\Documents\\notes.txt"');
   assert.equal(direct.ok, true); assert.match(direct.output, /RAM/);
   const { default: Lab } = await server.ssrLoadModule('/src/ShellLab.tsx');
-  const html = renderToString(createElement(Lab, { onTopic() {} }));
+  const html = renderToString(createElement(MantineProvider, null, createElement(Lab, { onTopic() {} })));
   assert.ok(html.includes('id="lab-command"')); assert.ok(html.includes('role="log"')); assert.ok(html.includes('실제 PC 파일'));
   assert.equal((html.match(/class="lab-mission-index/g) ?? []).length, lab.lessons.length);
   console.log('PASS: all 21 missions across 3 shells, quoted/absolute/relative paths, case handling, immutable state, reset behavior, unsupported commands, out-of-home paths and initial render');

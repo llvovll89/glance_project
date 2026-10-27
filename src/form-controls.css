@@ -1,0 +1,26 @@
+.mantine-Input-input{min-height:50px;border:1px solid var(--control-line);border-radius:var(--radius-control);background:var(--surface);color:var(--ink);font-family:inherit;font-size:16px;outline:none;transition:border-color 160ms ease}
+.mantine-Input-input::placeholder{color:var(--muted);opacity:1}
+.mantine-Input-input:focus,.mantine-Input-input:focus-visible{border-color:var(--accent);outline:none}
+.mantine-Input-section{color:var(--muted)}
+.mantine-Combobox-dropdown{border-color:var(--line);border-radius:var(--radius-control);background:var(--surface);color:var(--ink);box-shadow:none}
+.mantine-Combobox-option{border-radius:8px}
+.mantine-Combobox-option[data-combobox-selected]{background:var(--accent-soft);color:var(--accent)}
+
+.pc-control,.pc-control:hover,.pc-control:focus-within{display:block;min-height:0;border:0;background:none;outline:none}
+.pc-control .mantine-Input-input{min-height:54px;padding-left:42px}
+.pc-control .mantine-Input-section .icon{width:20px;height:20px;color:var(--muted)}
+.pc-control[data-filled='true'] .mantine-Input-section .icon,.pc-control:focus-within .mantine-Input-section .icon{color:var(--accent)}
+
+.search-field,.search-field:focus-within{display:block;min-width:0;border:0;padding:0;outline:none}
+.search-field .mantine-Input-input{min-height:48px;border:1px solid var(--control-line);background:var(--surface);font-size:14px}
+.library-search{min-height:0;padding:0;border:0;background:none}
+.library-search .mantine-Input-input{min-height:50px}
+.theme-select{width:160px}
+.theme-select .mantine-Input-input{min-height:44px;font-size:13px}
+.lab-controls .mantine-Select-root{min-width:170px}
+.lab-command-input{flex:1;min-width:0}
+.lab-command-form .mantine-Input-input{min-height:50px;font-family:'Cascadia Code',Consolas,monospace}
+.pc-import-textarea{width:100%}
+.pc-import .mantine-Textarea-input{min-height:130px;max-height:400px;resize:vertical;background:var(--surface);border-radius:var(--radius-control)}
+
+@media(max-width:767px){.search-field .mantine-Input-input,.theme-select .mantine-Input-input{font-size:16px}}
