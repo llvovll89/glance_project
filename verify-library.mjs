@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'vite';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
+import { MantineProvider } from '@mantine/core';
 const server = await createServer({ server: { middlewareMode: true, hmr: false }, appType: 'custom' });
 try {
   const { questions, quizScore } = await server.ssrLoadModule('/src/quiz.ts');
@@ -18,10 +19,10 @@ try {
   assert.deepEqual(quizScore(Object.fromEntries(questions.map(question => [question.id, question.answer]))), { answered: questions.length, correct: questions.length });
   assert.deepEqual(quizScore(Object.fromEntries(questions.map(question => [question.id, (question.answer + 1) % question.choices.length]))), { answered: questions.length, correct: 0 });
   assert.deepEqual(quizScore({ [questions[0].id]: -1, [questions[1].id]: 100, [questions[2].id]: NaN, [questions[3].id]: 1.5, unknown: 0 }), { answered: 0, correct: 0 });
-  const html = renderToString(createElement(Dictionary, { onTopic() {} }));
+  const html = renderToString(createElement(MantineProvider, null, createElement(Dictionary, { onTopic() {} })));
   assert.equal((html.match(/<details/g) ?? []).length, topics.length);
   assert.ok(html.includes('dictionary-search'));
-  assert.ok(renderToString(createElement(KnowledgeQuiz, { onTopic() {} })).includes(questions[0].question));
+  assert.ok(renderToString(createElement(MantineProvider, null, createElement(KnowledgeQuiz, { onTopic() {} }))).includes(questions[0].question));
   const { guideGroups, filterGuides } = await server.ssrLoadModule('/src/guide-categories.ts');
   const categorized = guideGroups.filter(group => group.id !== 'all').flatMap(group => group.ids);
   assert.equal(new Set(categorized).size, categorized.length, 'No duplicate guide category assignment');

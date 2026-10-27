@@ -10,6 +10,8 @@
     "verify": "node verify-design.mjs && node verify-content.mjs && node verify-profile.mjs && node verify-lab.mjs && node verify-import.mjs && node verify-library.mjs && node verify-symptoms.mjs"
   },
   "dependencies": {
+    "@mantine/core": "^9.7.4",
+    "@mantine/hooks": "^9.7.4",
     "react": "latest",
     "react-dom": "latest"
   },

@@ -2,7 +2,7 @@
 
 > 컴퓨터 문제, 한눈에 짚어보세요 (glance_project)
 
-컴퓨터 입문자를 위한 한국어 증상 점검과 학습 앱입니다. React, Vite, TypeScript, Tailwind CSS를 사용합니다.
+컴퓨터 입문자를 위한 한국어 증상 점검과 학습 앱입니다. React, Vite, TypeScript, Tailwind CSS를 사용하며 입력창·셀렉트·텍스트 영역은 Mantine 컴포넌트로 통일했습니다.
 
 ## 주요 기능
 
