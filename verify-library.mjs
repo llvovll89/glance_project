@@ -22,7 +22,11 @@ try {
   assert.equal((html.match(/<details/g) ?? []).length, topics.length);
   assert.ok(html.includes('dictionary-search'));
   assert.ok(renderToString(createElement(KnowledgeQuiz, { onTopic() {} })).includes(questions[0].question));
-  const categorized = ['display', 'beep', 'power', 'stop-error', 'heat', 'slow', 'disk-space', 'network', 'audio', 'usb-device', 'bluetooth-connect', 'camera'];
+  const { guideGroups, filterGuides } = await server.ssrLoadModule('/src/guide-categories.ts');
+  const categorized = guideGroups.filter(group => group.id !== 'all').flatMap(group => group.ids);
+  assert.equal(new Set(categorized).size, categorized.length, 'No duplicate guide category assignment');
   assert.deepEqual([...guides.map(guide => guide.id)].sort(), [...categorized].sort(), 'Guide categories cover the full collection');
+  for (const group of guideGroups) assert.equal(filterGuides(guides, group.id).length, group.id === 'all' ? guides.length : group.ids.length);
+  assert.equal(filterGuides(guides, 'unknown-category').length, guides.length);
   console.log(`PASS: ${questions.length} quiz questions, correct/incorrect/invalid scoring, topic references, dictionary entries and complete guide categorization`);
 } finally { await server.close(); }

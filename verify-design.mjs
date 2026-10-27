@@ -15,6 +15,7 @@ try {
   assert.equal((html.match(/class="step-index"/g)||[]).length,4);
   const iconPaths=[...html.matchAll(/\/icons\/([A-Za-z]+)\.svg/g)].map(x=>x[1]);
   for(const icon of iconPaths) assert.ok(existsSync('public/icons/'+icon+'.svg'),icon);
+  for (const size of [640,1024,1536]) assert.ok(existsSync('public/assets/computer-studio-'+size+'.webp'));
   assert.ok(existsSync('public/assets/computer-studio.png'));
   assert.ok(existsSync('public/fonts/PretendardVariable.woff2'));
   console.log('Server render and all initial image/icon/font references: PASS');

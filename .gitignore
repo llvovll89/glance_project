@@ -1,3 +1,14 @@
 node_modules/
 dist/
+coverage/
 .npm-cache/
+.vite/
+.env
+.env.*
+!.env.example
+*.local
+*.log
+*.docx
+*.DOCX
+.DS_Store
+Thumbs.db
