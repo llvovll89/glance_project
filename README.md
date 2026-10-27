@@ -31,6 +31,8 @@ npm run dev -- --port 5173
 
 `npm run build`로 타입 검사와 프로덕션 빌드를, `npm run verify`로 프로젝트 검증 스크립트를 실행합니다. 전체 검증 범위와 모바일 확인 상태는 [모바일 QA 문서](docs/MOBILE-QA.md)를 참고하세요.
 
+`main` 대상 PR과 `main` 푸시에서는 GitHub Actions가 Node.js 24로 의존성을 설치하고 검증·빌드를 실행합니다. 증상 목록의 6개씩 확장·접기 및 분야 변경 동작도 `npm run verify`에 포함됩니다. Vercel Git 연동은 PR에 미리보기 배포를 만들고 `main` 병합 후 프로덕션 배포를 수행합니다. 병합 전 CI 통과를 필수로 하려면 GitHub 브랜치 보호 규칙에서 `test-and-build` 검사를 필수로 지정하세요.
+
 ## 안내 범위
 
 Windows PC의 기초 학습과 외부 점검을 안내하며 고장을 확정하지 않습니다. 기기별 절차는 정확한 모델의 공식 설명서를 우선합니다. 분해나 부품 교체를 안내하지 않습니다.
