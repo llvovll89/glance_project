@@ -1,5 +1,7 @@
 # 한눈 컴퓨터 가이드
 
+> 컴퓨터 문제, 한눈에 짚어보세요 (glance_project)
+
 React + Vite + TypeScript + Tailwind CSS로 작성한 한국어 PC 입문 가이드의 첫 소스 버전입니다.
 
 ## 실행
