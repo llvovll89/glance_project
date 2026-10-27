@@ -1,4 +1,5 @@
 import { expandedGuides, expandedTopics } from './expanded-content';
+import { libraryGuides, libraryTopics } from './library-content';
 export type IconName = 'ArrowRight' | 'ArrowLeft' | 'CaretRight' | 'CaretDown' | 'Check' | 'CheckCircle' | 'X' | 'MagnifyingGlass' | 'Monitor' | 'SpeakerHigh' | 'Cpu' | 'Memory' | 'HardDrives' | 'GraphicsCard' | 'TerminalWindow' | 'SquaresFour' | 'ArrowSquareOut' | 'Copy' | 'Info' | 'BookOpen' | 'Sun' | 'Moon' | 'Desktop' | 'ShieldCheck' | 'PlugsConnected';
 export type Topic = { id: string; title: string; category: string; summary: string; paragraphs: string[]; exercise: string; icon?: IconName; shortLabel?: string };
 export const topics: Topic[] = [
@@ -9,7 +10,7 @@ export const topics: Topic[] = [
   { id: 'os', title: '운영체제', category: '기본 개념', summary: '하드웨어와 프로그램이 함께 동작하도록 관리하는 소프트웨어', paragraphs: ['Windows, macOS, Linux 같은 운영체제는 메모리와 파일, 장치 등을 관리하고 프로그램이 실행되는 환경을 제공합니다.', '앱에서 문제가 생겨도 원인이 항상 운영체제인 것은 아닙니다. 앱 하나의 문제인지, 여러 앱에서 같은 문제가 생기는지 구분하면 확인 범위를 좁힐 수 있어요.'], exercise: 'Windows 설정 > 시스템 > 정보에서 Windows 버전과 장치 사양을 확인해 보세요.' },
   { id: 'shell', title: '터미널과 셸', category: '명령어 입문', summary: '명령을 입력하는 창과, 명령을 해석하는 프로그램', paragraphs: ['터미널은 글자로 명령을 입력하고 결과를 보는 인터페이스입니다. 셸은 입력한 명령을 해석하고 실행하는 프로그램이에요.', 'Windows Terminal에서 PowerShell 같은 셸을 사용할 수 있습니다. 명령 프롬프트(CMD)는 Windows 명령을, PowerShell은 명령과 객체를 다루며, Bash는 Linux와 macOS 등에서 사용하는 셸의 하나예요. Windows에서는 WSL이나 Git Bash 등으로 Bash를 사용할 수도 있어요. 셸이 다르면 같은 목적의 명령도 다를 수 있어요.'], exercise: 'PowerShell에서 Get-Location을 입력하면 현재 위치가 표시됩니다. Get-ChildItem은 현재 위치의 항목을 나열합니다. 두 명령 모두 파일을 수정하거나 삭제하지 않습니다.' },
 ];
-topics.push(...expandedTopics);
+topics.push(...expandedTopics, ...libraryTopics);
 export type Guide = { id: string; title: string; summary: string; tags: string[]; icon?: IconName; relatedTopics?: string[]; variants?: { id: string; title: string; description: string; guideId?: string; step: number }[]; steps: { title: string; body: string; tip?: string; check?: string; next?: string; relatedTopics?: string[]; visual?: { icon: IconName; title: string; detail: string } }[]; source: string; sourceName: string; sourceDate?: string };
 export const guides: Guide[] = [
   { id: 'display', title: '본체는 켜지는데 화면이 안 나와요', summary: '모니터, 연결 상태, 입력 선택부터 차근차근 확인해요.', tags: ['화면', '모니터', '검은 화면'], relatedTopics: ['gpu', 'motherboard'], steps: [
@@ -25,4 +26,4 @@ export const guides: Guide[] = [
     { title: '익숙하지 않은 내부 작업은 지원을 받아요', body: '내부 부품을 만지는 단계는 이 가이드에 포함하지 않아요. 모델명, 패턴, 최근 부품 변경 여부를 정리해 제조사나 수리 담당자에게 전달하세요.' },
   ], source: 'https://www.dell.com/support/kbdoc/en-td/000124349/understanding-beep-codes-on-a-dell-desktop-pc', sourceName: 'Dell 데스크톱 비프음 코드 안내' },
 ];
-guides.push(...expandedGuides);
+guides.push(...expandedGuides, ...libraryGuides);

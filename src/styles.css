@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "./pc-profile.css";
 @import "./shell-lab.css";
+@import "./pc-inputs.css";
+@import "./library.css";
 /* Symptom routes and result guidance extend the existing cobalt workspace. */
 .guide-variants{padding:24px 30px;border-bottom:1px solid var(--line)}
 .guide-variants h3{font-size:15px;margin-bottom:14px}
