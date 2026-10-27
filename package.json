@@ -7,17 +7,18 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "verify": "node verify-design.mjs && node verify-content.mjs && node verify-profile.mjs && node verify-lab.mjs && node verify-import.mjs && node verify-library.mjs"
+    "verify": "node verify-design.mjs && node verify-content.mjs && node verify-profile.mjs && node verify-lab.mjs && node verify-import.mjs && node verify-library.mjs && node verify-symptoms.mjs"
   },
   "dependencies": {
     "react": "latest",
     "react-dom": "latest"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "@vitejs/plugin-react": "latest",
-    "@tailwindcss/vite": "latest",
+    "jsdom": "^29.1.1",
     "tailwindcss": "latest",
     "typescript": "latest",
     "vite": "latest"
