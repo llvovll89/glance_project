@@ -95,3 +95,10 @@
   .article-dialog{max-height:calc(100dvh - 16px);margin-block:8px}
   .article-content{padding-top:8px}
 }
+
+.symptom-more{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:18px;color:var(--muted);font-size:12px}
+.symptom-more button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:9px 16px;border:1px solid var(--control-line);border-radius:var(--radius-control);background:var(--surface);color:var(--accent);font-size:13px;font-weight:650}
+.symptom-more button:hover{background:var(--accent-soft);border-color:var(--accent)}
+.symptom-more .icon{width:16px;height:16px}
+.symptom-more .icon.is-up{transform:rotate(180deg)}
+@media(max-width:400px){.symptom-more{gap:10px}.symptom-more button{padding-inline:12px;font-size:12px}}

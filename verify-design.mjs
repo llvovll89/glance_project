@@ -11,7 +11,9 @@ try {
   assert.ok(html.includes('id="main"'));
   assert.ok(html.includes('id="search"'));
   assert.ok(html.includes('aria-label='));
-  assert.equal((html.match(/class="symptom-option[ "]/g)||[]).length,guides.length);
+  assert.equal((html.match(/class="symptom-option[ "]/g)||[]).length,6);
+  assert.ok(html.includes('개 표시'));
+  assert.ok(html.includes('증상 6개 더 보기'));
   assert.equal((html.match(/class="step-index"/g)||[]).length,4);
   const iconPaths=[...html.matchAll(/\/icons\/([A-Za-z]+)\.svg/g)].map(x=>x[1]);
   for(const icon of iconPaths) assert.ok(existsSync('public/icons/'+icon+'.svg'),icon);
