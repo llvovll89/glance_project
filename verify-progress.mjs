@@ -34,7 +34,7 @@ try {
     { guideId: 'display', step: 1, reviewed: [99] },
     { guideId: 'display', step: 1, reviewed: [], variant: 'unknown' },
   ]) assert.equal(progress.saveGuideProgress(invalid, guides, storage), false);
-  for (const raw of ['broken JSON', 'null', '[]', '{"version":2,"progress":{"guideId":"display","step":0,"reviewed":[]}}', 'X'.repeat(2001)]) {
+  for (const raw of ['broken JSON', 'null', '[]', '{"version":2,"progress":{"guideId":"display","step":0,"reviewed":[]}}', 'X'.repeat(progress.MAX_PROGRESS_LENGTH + 1)]) {
     data.set(progress.GUIDE_PROGRESS_KEY, raw);
     assert.equal(progress.readGuideProgress(guides, storage), null);
   }

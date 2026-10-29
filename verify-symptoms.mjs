@@ -5,6 +5,8 @@ import { JSDOM } from 'jsdom';
 const dom = new JSDOM('<div id="root"></div>', { url: 'https://example.test/', pretendToBeVisual: true });
 globalThis.window = dom.window;
 globalThis.document = dom.window.document;
+// JSDOM does not implement the FontFaceSet events used by autosizing textareas.
+Object.defineProperty(document, 'fonts', { value: new dom.window.EventTarget() });
 globalThis.localStorage = dom.window.localStorage;
 globalThis.Element = dom.window.Element;
 globalThis.HTMLElement = dom.window.HTMLElement;

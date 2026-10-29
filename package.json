@@ -8,7 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "test:e2e": "playwright test",
     "preview": "vite preview",
-    "verify": "node verify-design.mjs && node verify-content.mjs && node verify-profile.mjs && node verify-progress.mjs && node verify-lab.mjs && node verify-import.mjs && node verify-library.mjs && node verify-symptoms.mjs"
+    "verify": "node verify-design.mjs && node verify-content.mjs && node verify-profile.mjs && node verify-progress.mjs && node verify-history.mjs && node verify-lab.mjs && node verify-import.mjs && node verify-library.mjs && node verify-symptoms.mjs"
   },
   "dependencies": {
     "@mantine/core": "^9.7.4",

@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { MantineProvider, Select, TextInput } from '@mantine/core';
+import { MantineProvider, Select, TextInput, Textarea } from '@mantine/core';
 import { formTheme } from './form-theme';
 import { guides, topics, type Guide, type Topic, type IconName, type ResultChoice } from './content';
 import PcProfilePanel from './PcProfile';
 import ShellLab from './ShellLab';
 import SettingsVisual from './SettingsVisual';
+import DiagnosisHistory from './DiagnosisHistory';
+import { createDiagnosisRecord, diagnosisReport, HISTORY_LIMIT, NOTE_LIMIT, newHistoryId, readDiagnosisHistory, upsertDiagnosisRecord, writeDiagnosisHistory, type DiagnosisRecord, type DiagnosisStatus } from './diagnosis-history';
 import { Dictionary, KnowledgeQuiz } from './LearningLibrary';
 import { guideGroups, filterGuides } from './guide-categories';
 import { readPcProfile, profileLines, type PcProfile } from './pc-profile';
@@ -52,13 +54,17 @@ function StepVisual({ guide, step }: { guide: Guide; step: number }) {
   const current = guide.steps[step].visual ?? (['display', 'beep'].includes(guide.id) ? visual[step] : { icon: 'BookOpen', title: guide.steps[step].title, detail: '표시된 안내에 따라 하나씩 확인해요.' });
   return <figure className="step-visual"><div className="step-visual-symbol"><Icon name={current.icon as IconName} /></div><figcaption><strong>{current.title}</strong><span>{current.detail}</span></figcaption></figure>;
 }
-export function Diagnosis({ guide, onTopic, onGuide, onProgress, initialProgress, profile }: { guide: Guide; onTopic: (id: string) => void; onGuide: (id: string) => void; onProgress?: (progress: GuideProgress | null, guideId: string) => void; initialProgress?: GuideProgress | null; profile?: PcProfile | null }) {
+export function Diagnosis({ guide, onTopic, onGuide, onProgress, onArchive, initialProgress, profile }: { guide: Guide; onTopic: (id: string) => void; onGuide: (id: string) => void; onProgress?: (progress: GuideProgress | null, guideId: string) => void; onArchive?: (record: DiagnosisRecord) => string | null; initialProgress?: GuideProgress | null; profile?: PcProfile | null }) {
   const [step, setStep] = useState(initialProgress?.step ?? 0);
   const [done, setDone] = useState(false);
   const [reviewed, setReviewed] = useState<number[]>(initialProgress?.reviewed ?? []);
   const [copyStatus, setCopyStatus] = useState('');
   const [variant, setVariant] = useState<string | undefined>(initialProgress?.variant);
   const [answers, setAnswers] = useState<GuideAnswer[]>(initialProgress?.answers ?? []);
+  const [note, setNote] = useState(initialProgress?.note ?? '');
+  const [historyId] = useState(() => initialProgress?.historyId ?? newHistoryId());
+  const [completionStatus, setCompletionStatus] = useState<DiagnosisStatus>('resolved');
+  const [archiveError, setArchiveError] = useState<string | null>(null);
   const stepHeading = useRef<HTMLHeadingElement>(null);
   const shouldFocus = useRef(false);
   useEffect(() => {
@@ -67,8 +73,31 @@ export function Diagnosis({ guide, onTopic, onGuide, onProgress, initialProgress
   const current = guide.steps[step];
   const last = step === guide.steps.length - 1;
   const relatedTopics = (current.relatedTopics ?? guide.relatedTopics ?? ['ram', 'gpu']).map(id => topics.find(topic => topic.id === id)).filter((topic): topic is Topic => Boolean(topic));
-  function record(nextStep: number, nextReviewed: number[], nextVariant = variant, nextAnswers = answers) {
-    onProgress?.({ guideId: guide.id, step: nextStep, reviewed: nextReviewed, answers: nextAnswers, ...(nextVariant ? { variant: nextVariant } : {}) }, guide.id);
+  function progress(nextReviewed = reviewed, nextAnswers = answers): GuideProgress {
+    return { guideId: guide.id, step, reviewed: nextReviewed, answers: nextAnswers, note, historyId, ...(variant ? { variant } : {}) };
+  }
+  function record(nextStep: number, nextReviewed: number[], nextVariant = variant, nextAnswers = answers, nextNote = note) {
+    onProgress?.({ guideId: guide.id, step: nextStep, reviewed: nextReviewed, answers: nextAnswers, note: nextNote, historyId, ...(nextVariant ? { variant: nextVariant } : {}) }, guide.id);
+  }
+  function finishCheck(status: DiagnosisStatus, nextReviewed: number[], nextAnswers: GuideAnswer[]) {
+    const error = onArchive?.(createDiagnosisRecord(guide, progress(nextReviewed, nextAnswers), status, profile ? profileLines(profile) : [])) ?? null;
+    setReviewed(nextReviewed);
+    setAnswers(nextAnswers);
+    setCompletionStatus(status);
+    setArchiveError(error);
+    setDone(true);
+    setCopyStatus('');
+    shouldFocus.current = true;
+    if (error) record(step, nextReviewed, variant, nextAnswers);
+    else onProgress?.(null, guide.id);
+  }
+  function returnToCheck() {
+    const savedNote = !archiveError ? readDiagnosisHistory().find(item => item.id === historyId)?.note : undefined;
+    const nextNote = savedNote ?? note;
+    setNote(nextNote);
+    setDone(false);
+    shouldFocus.current = true;
+    record(step, reviewed, variant, answers, nextNote);
   }
   function chooseResult(choice: ResultChoice) {
     // Re-answering an earlier check invalidates the results after that check.
@@ -79,8 +108,7 @@ export function Diagnosis({ guide, onTopic, onGuide, onProgress, initialProgress
     setCopyStatus('');
     shouldFocus.current = true;
     if (choice.target === 'resolved') {
-      setDone(true);
-      onProgress?.(null, guide.id);
+      finishCheck('resolved', nextReviewed, nextAnswers);
     } else {
       setStep(choice.target);
       record(choice.target, nextReviewed, variant, nextAnswers);
@@ -96,20 +124,8 @@ export function Diagnosis({ guide, onTopic, onGuide, onProgress, initialProgress
     shouldFocus.current = true;
     record(step + 1, nextReviewed, variant, nextAnswers);
   }
-  function confirmCurrent() {
-    const nextReviewed = [...reviewed.filter(index => index < step), step];
-    setAnswers(answers.filter(answer => answer.step < step));
-    setReviewed(nextReviewed);
-    return nextReviewed;
-  }
   async function copyReport() {
-    const checked = reviewed.length ? reviewed.slice().sort().map(i => `- ${guide.steps[i].title}`).join('\n') : '확인 완료로 기록한 단계 없음';
-    const device = profile ? '기기 사양(사용자가 입력한 기록):\n' + profileLines(profile).join('\n') : '기기 모델: (입력해 주세요)';
-    const results = answers.map(answer => {
-      const item = guide.steps[answer.step];
-      return `- ${item.question}: ${item.choices?.find(choice => choice.id === answer.choiceId)?.label}`;
-    }).join('\n') || '선택한 결과 없음';
-    const report = `한눈 컴퓨터 점검 기록\n증상: ${guide.title}\n확인 완료한 단계:\n${checked}\n선택한 확인 결과:\n${results}\n상태: ${done ? '사용자가 해결됨으로 표시' : '추가 확인 필요'}\n${device}\n실제 확인 결과: (입력해 주세요)`;
+    const report = diagnosisReport(createDiagnosisRecord(guide, progress(), done ? completionStatus : 'unresolved', profile ? profileLines(profile) : []));
     try { await navigator.clipboard.writeText(report); setCopyStatus('복사했어요. 모델명과 실제 결과를 덧붙여 전달하세요.'); }
     catch { setCopyStatus('복사할 수 없어요. 확인한 단계와 결과를 직접 기록해 주세요.'); }
   }
@@ -119,12 +135,14 @@ export function Diagnosis({ guide, onTopic, onGuide, onProgress, initialProgress
     <div className="diagnosis-workspace">
       <aside className="checklist"><h3>확인할 순서</h3><ol aria-label="점검 순서">{guide.steps.map((item, i) => <li key={item.title}><button className={`${!done && i === step ? 'is-current' : ''} ${reviewed.includes(i) ? 'is-reviewed' : ''}`} onClick={() => { setStep(i); setDone(false); setCopyStatus(''); record(i, reviewed); }} aria-current={!done && i === step ? 'step' : undefined}><span className="step-index">{reviewed.includes(i) ? <Icon name="Check" /> : i + 1}</span><span>{item.title}</span>{!done && i === step && <Icon name="CaretRight" />}</button></li>)}</ol><div className="checklist-foot"><Icon name="Info" /><p>익숙하지 않은 내부 작업은<br/>공식 지원을 받아 진행하세요.</p></div></aside>
       <div className="step-main"><div className="step-content" aria-live="polite" aria-atomic="true" key={done ? 'done' : step}>
-        {done ? <div className="completion"><span className="completion-symbol"><Icon name="CheckCircle" /></span><h3 ref={stepHeading} tabIndex={-1}>다시 잘 작동한다니 다행이에요.</h3><p>해결됨으로 표시했어요. 같은 증상이 반복되면 발생 상황을 기록하고 공식 지원에 문의하세요.</p><button className="button button-secondary" onClick={() => { setDone(false); shouldFocus.current = true; record(step, reviewed); }}><Icon name="ArrowLeft" />점검으로 돌아가기</button></div> : <>
+        {done ? <div className="completion"><span className="completion-symbol"><Icon name={completionStatus === 'resolved' ? 'CheckCircle' : 'BookOpen'} /></span><h3 ref={stepHeading} tabIndex={-1}>{completionStatus === 'resolved' ? '다시 잘 작동한다니 다행이에요.' : '추가 확인이 필요해요.'}</h3><p>{completionStatus === 'resolved' ? '해결됨으로 표시했어요. 같은 증상이 반복되면 발생 상황을 기록하고 공식 지원에 문의하세요.' : '확인한 결과와 발생 상황을 정리해 공식 지원에 문의하세요.'}</p>{archiveError ? <div className="archive-error"><p role="alert">{archiveError}</p><button type="button" className="button button-secondary" onClick={() => finishCheck(completionStatus, reviewed, answers)}>기록 저장 다시 시도</button></div> : onArchive && <p className="archive-success" role="status">점검 이력에 결과와 메모를 남겼어요.</p>}<button className="button button-secondary" onClick={returnToCheck}><Icon name="ArrowLeft" />점검으로 돌아가기</button></div> : <>
           <div className="step-meta"><span>{step + 1}번째 확인</span><span>전체 {guide.steps.length}단계</span></div><h3 ref={stepHeading} tabIndex={-1}>{current.title}</h3>
           <div className="step-explanation"><StepVisual guide={guide} step={step}/><div className="step-copy"><p>{current.body}</p>{current.check && <dl className="step-outcomes"><div><dt>확인할 결과</dt><dd>{current.check}</dd></div><div><dt>다음 행동</dt><dd>{current.next}</dd></div></dl>}{current.tip && <aside className="notice"><Icon name="Info" /><p>{current.tip}</p></aside>}</div></div>
           <SettingsVisual guideId={guide.id} step={step} />
           {current.choices && <fieldset className="result-question"><legend>{current.question}</legend><p>확인한 결과를 고르면 다음 점검으로 이동해요.</p><div>{current.choices.map(choice => <button type="button" key={choice.id} onClick={() => chooseResult(choice)}><span>{choice.label}</span><Icon name={choice.target === 'resolved' ? 'Check' : 'ArrowRight'} /></button>)}</div><small>잘 모르겠으면 ‘다음 확인’으로 순서대로 진행해도 괜찮아요.</small></fieldset>}
-          <div className="step-actions"><button className="button button-secondary" onClick={() => { confirmCurrent(); setDone(true); onProgress?.(null, guide.id); }}><Icon name="Check" />해결됐어요</button>{!last ? <button className="button button-primary" onClick={advanceWithoutAnswer}>다음 확인<Icon name="ArrowRight" /></button> : <a className="button button-primary" href={guide.source} target="_blank" rel="noreferrer">공식 지원 보기<Icon name="ArrowSquareOut" /></a>}</div>
+          <details className="diagnosis-note"><summary>결과 메모 남기기 (선택)</summary><Textarea label="결과 메모" description={`최대 ${NOTE_LIMIT}자. 확인한 상황이나 해결 방법을 적어 두세요.`} placeholder="예: 모니터 입력을 HDMI 2로 바꾸니 화면이 나왔어요." value={note} maxLength={NOTE_LIMIT} autosize minRows={2} maxRows={6} onChange={event => { const value = event.currentTarget.value; setNote(value); record(step, reviewed, variant, answers, value); }} /><small>{note.length} / {NOTE_LIMIT}자</small></details>
+          <div className="step-actions"><button className="button button-secondary" onClick={() => finishCheck('resolved', [...reviewed.filter(index => index < step), step], answers.filter(answer => answer.step < step))}><Icon name="Check" />해결됐어요</button>{!last ? <button className="button button-primary" onClick={advanceWithoutAnswer}>다음 확인<Icon name="ArrowRight" /></button> : <a className="button button-primary" href={guide.source} target="_blank" rel="noreferrer">공식 지원 보기<Icon name="ArrowSquareOut" /></a>}</div>
+          <div className="archive-unresolved"><button type="button" className="text-button" onClick={() => finishCheck('unresolved', reviewed, answers)}>미해결로 기록</button></div>
         </>}
       </div>{answers.length > 0 && <details className="answer-history"><summary>선택한 확인 결과 {answers.length}개</summary><ul>{answers.map(answer => <li key={answer.step}><span>{guide.steps[answer.step].question}</span><strong>{guide.steps[answer.step].choices?.find(choice => choice.id === answer.choiceId)?.label}</strong><button type="button" className="text-button" aria-label={`${answer.step + 1}번째 확인 결과 변경`} onClick={() => { setStep(answer.step); setDone(false); setCopyStatus(''); shouldFocus.current = true; record(answer.step, reviewed); }}>결과 변경</button></li>)}</ul></details>}<div className="guide-tools"><div><span>이 단계의 용어</span>{relatedTopics.map(topic => <button key={topic.id} onClick={() => onTopic(topic.id)}>{topic.title}</button>)}</div><button className="text-button" onClick={copyReport}><Icon name="Copy" />점검 기록 복사</button></div>{copyStatus && <p role="status" className="copy-status">{copyStatus}</p>}</div>
     </div>
@@ -146,11 +164,22 @@ export default function App() {
   const [guideFilter, setGuideFilter] = useState('all');
   const [guideLimit, setGuideLimit] = useState(6);
   const [savedProgress, setSavedProgress] = useState<GuideProgress | null>(() => readGuideProgress(guides));
+  const [history, setHistory] = useState<DiagnosisRecord[]>(readDiagnosisHistory);
   const [initialProgress, setInitialProgress] = useState<GuideProgress | null>(null);
   const [guideInstance, setGuideInstance] = useState(0);
   const visibleGuides = filterGuides(guides, guideFilter);
   const shownGuides = visibleGuides.slice(0, guideLimit);
-  function openGuide(id: string) { if (!visibleGuides.some(guide => guide.id === id)) setGuideFilter('all'); setInitialProgress(savedProgress?.guideId === id ? savedProgress : null); setGuideInstance(value => value + 1); setSelected(id); setView('help'); setQuery(''); requestAnimationFrame(() => document.querySelector('.diagnosis')?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })); }
+  function openGuide(id: string, fresh = false) { if (!visibleGuides.some(guide => guide.id === id)) setGuideFilter('all'); setInitialProgress(!fresh && savedProgress?.guideId === id ? savedProgress : null); setGuideInstance(value => value + 1); setSelected(id); setView('help'); setQuery(''); requestAnimationFrame(() => document.querySelector('.diagnosis')?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })); }
+  function changeHistory(records: DiagnosisRecord[]): boolean {
+    if (!writeDiagnosisHistory(records)) return false;
+    setHistory(records);
+    return true;
+  }
+  function archiveDiagnosis(record: DiagnosisRecord): string | null {
+    const records = upsertDiagnosisRecord(history, record);
+    if (records.length > HISTORY_LIMIT) return `이력은 ${HISTORY_LIMIT}개까지 보관할 수 있어요. 필요 없는 기록을 삭제한 뒤 다시 저장해 주세요.`;
+    return changeHistory(records) ? null : '점검 이력을 저장하지 못했어요. 메모와 진행 상태는 이 화면에 유지돼요. 다시 저장하거나 점검 기록을 복사해 주세요.';
+  }
   function updateProgress(progress: GuideProgress | null, guideId: string) {
     if (!progress) { if (savedProgress?.guideId === guideId) { deleteGuideProgress(); setSavedProgress(null); setInitialProgress(null); } return; }
     if (saveGuideProgress(progress, guides)) { setSavedProgress(progress); setInitialProgress(progress); }
@@ -172,13 +201,15 @@ export default function App() {
       <section className="search-section" aria-label="가이드 검색"><div className="search-heading"><Icon name="MagnifyingGlass" /><label htmlFor="search">무엇이 궁금한가요?</label></div><TextInput className="search-field" id="search" type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="예: 화면이 안 나와요, RAM, 운영체제" autoComplete="off" rightSection={query && <button className="icon-button" aria-label="검색어 지우기" onClick={() => setQuery('')}><Icon name="X" /></button>} rightSectionPointerEvents="all" rightSectionWidth={44}/><span className="search-scope">Windows PC 기초 가이드</span></section>
       {keyword ? <section className="results" aria-labelledby="result-title"><div className="section-heading"><h2 id="result-title">검색 결과</h2><p role="status">{filteredGuides.length + filteredTopics.length}개를 찾았어요.</p></div>{!filteredGuides.length && !filteredTopics.length && <div className="empty"><Icon name="MagnifyingGlass" /><h3>일치하는 가이드가 없어요.</h3><p>‘화면’, ‘비프음’, ‘RAM’처럼 짧은 단어로 다시 찾아보세요.</p><button className="button button-secondary" onClick={() => setQuery('')}>전체 가이드 보기</button></div>}<div className="result-list">{filteredGuides.map(g => <button className="result-row" key={g.id} onClick={() => openGuide(g.id)}><span className="result-symbol"><Icon name={guideIcon(g)} /></span><span><small>문제 해결</small><strong>{g.title}</strong><span>{g.summary}</span></span><Icon name="ArrowRight" /></button>)}{filteredTopics.map(t => <button className="result-row" key={t.id} onClick={() => setArticleId(t.id)}><span className="result-symbol"><Icon name={topicIcon(t)} /></span><span><small>{t.category}</small><strong>{t.title}</strong><span>{t.summary}</span></span><Icon name="ArrowRight" /></button>)}</div></section> : view === 'help' ? <>
         {savedProgress && <section className="resume-card" aria-label="이어서 점검"><div><span>이 브라우저에 저장된 점검</span><h2>{guides.find(guide => guide.id === savedProgress.guideId)?.title}</h2><p>{savedProgress.step + 1}번째 단계부터 이어갈 수 있어요. 사이트 데이터를 지우면 이 기록도 사라져요.</p></div><div className="resume-actions"><button type="button" className="button button-primary" onClick={() => openGuide(savedProgress.guideId)}>이어서 점검</button><button type="button" className="text-button" onClick={clearProgress}>기록 삭제</button></div></section>}
+        <a className="history-jump text-button" href="#diagnosis-history">점검 이력 {history.length}개 보기<Icon name="ArrowRight" /></a>
         <section id="symptoms" className="symptoms" aria-labelledby="symptom-title">
           <div className="section-heading"><h2 id="symptom-title">지금 어떤 증상이 있나요?</h2><p>{guides.length}가지 증상 중 가장 가까운 것을 고르고 점검을 시작하세요.</p></div>
           <div className="guide-filters" aria-label="증상 분야">{guideGroups.map(group => <button type="button" key={group.id} aria-pressed={guideFilter === group.id} onClick={() => { setGuideFilter(group.id); setGuideLimit(6); }}>{group.label} {filterGuides(guides, group.id).length}</button>)}</div>
           <div id="symptom-options" className="symptom-options">{shownGuides.map(g => <button key={g.id} className={`symptom-option ${selected === g.id ? 'is-selected' : ''}`} aria-pressed={selected === g.id} onClick={() => openGuide(g.id)}><span className="symptom-symbol"><Icon name={guideIcon(g)} /></span><span className="symptom-copy"><strong>{g.title}</strong><span>{g.summary}</span></span><span className="selection-mark">{selected === g.id ? <><Icon name="Check" /><span className="sr-only">선택됨</span></> : <Icon name="CaretRight" />}</span></button>)}</div>
           {visibleGuides.length > 6 && <div className="symptom-more"><span role="status">{shownGuides.length} / {visibleGuides.length}개 표시</span><button type="button" aria-controls="symptom-options" onClick={() => setGuideLimit(limit => limit >= visibleGuides.length ? 6 : limit + 6)}>{guideLimit >= visibleGuides.length ? '처음 6개만 보기' : `증상 ${Math.min(6, visibleGuides.length - guideLimit)}개 더 보기`}<Icon name="CaretDown" className={guideLimit >= visibleGuides.length ? 'is-up' : ''} /></button></div>}
         </section>
-        <Diagnosis key={`${selected}:${guideInstance}`} guide={currentGuide} onTopic={setArticleId} onGuide={openGuide} onProgress={updateProgress} initialProgress={initialProgress} profile={profile}/>
+        <Diagnosis key={`${selected}:${guideInstance}`} guide={currentGuide} onTopic={setArticleId} onGuide={openGuide} onProgress={updateProgress} onArchive={archiveDiagnosis} initialProgress={initialProgress} profile={profile}/>
+        <DiagnosisHistory records={history} onChange={changeHistory} onRestart={id => openGuide(id, true)} />
         <section className="learning-strip"><span className="learning-strip-symbol"><Icon name="Cpu" /></span><div><h2>RAM이 뭔지 몰라도 괜찮아요.</h2><p>컴퓨터를 이루는 부품과 기본 개념을 알아보세요.</p></div><button className="button button-secondary" onClick={() => { setView('learn'); setQuery(''); window.scrollTo({ top: 0, behavior: 'instant' }); }}>컴퓨터 이해하기<Icon name="ArrowRight" /></button></section>
       </> : view === 'pc' ? <PcProfilePanel profile={profile} onSave={setProfile} onTopic={setArticleId} onGuide={openGuide}/>: view === 'lab' ? <ShellLab onTopic={setArticleId}/>: <><div className="learning-modes" id="learn-start" aria-label="학습 방식"><button type="button" aria-pressed={learnMode === 'explore'} onClick={() => setLearnMode('explore')}>부품과 기초</button><button type="button" aria-pressed={learnMode === 'dictionary'} onClick={() => setLearnMode('dictionary')}>용어 사전</button><button type="button" aria-pressed={learnMode === 'quiz'} onClick={() => setLearnMode('quiz')}>이해도 퀴즈</button></div>{learnMode === 'explore' ? <><HardwareExplorer openTopic={setArticleId}/><ConceptSection title="부품 다음은, 기본 개념." description="운영체제와 명령어 창의 역할을 알아봐요." id="concept-title" items={topics.filter(t => ['os', 'shell'].includes(t.id))} openTopic={setArticleId}/><ConceptSection title="Windows에서 직접 해보기" description="설정과 도구를 이해하면 일상적인 문제도 덜 낯설어요." id="windows-title" items={topics.filter(t => t.category === 'Windows 기초')} openTopic={setArticleId}/></> : learnMode === 'dictionary' ? <Dictionary onTopic={setArticleId}/> : <KnowledgeQuiz onTopic={setArticleId}/>}</>}
     </main><footer className="site-footer"><strong>한눈</strong><p>내 컴퓨터를 이해하는 가장 작은 시작.</p><span>Windows PC 기초 가이드</span></footer><Article topic={topics.find(t => t.id === articleId)} close={() => setArticleId(undefined)}/>
