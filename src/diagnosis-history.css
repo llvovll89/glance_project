@@ -1,0 +1,62 @@
+.history-jump { margin: 0 0 14px; color: var(--accent); text-decoration: none; }
+.diagnosis-note { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 10px; }
+.diagnosis-note > summary { min-height: 44px; align-content: center; cursor: pointer; color: var(--accent); font-size: 13px; }
+.diagnosis-note small { display: block; text-align: right; margin-top: 6px; color: var(--muted); font-size: 11px; }
+.archive-unresolved { display: flex; justify-content: flex-end; margin: -16px 0 14px; }
+.archive-unresolved button { font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
+.completion .archive-success { color: var(--accent); margin: 0 0 20px; font-size: 13px; }
+.archive-error { display: grid; justify-items: center; gap: 12px; margin-bottom: 20px; }
+.completion .archive-error p { margin: 0; font-size: 13px; }
+.diagnosis-history { margin-top: 36px; padding-top: 32px; border-top: 1px solid var(--line); scroll-margin-top: 28px; }
+.history-storage { max-width: 75ch; font-size: 12px; color: var(--muted); line-height: 1.9; }
+.history-count { font-size: 12px; font-weight: 600; color: var(--accent); margin: 18px 0 12px; }
+.history-list { display: grid; gap: 12px; }
+.history-entry { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-control); overflow: clip; }
+.history-entry > summary { display: flex; justify-content: space-between; align-items: center; gap: 18px; cursor: pointer; padding: 20px 22px; min-height: 90px; }
+.history-entry > summary::after { content: '+'; color: var(--accent); font-size: 20px; flex-shrink: 0; }
+.history-entry > summary:focus-visible { outline-offset: -4px; }
+.history-entry[open] > summary::after { content: '−'; }
+.history-entry-title { min-width: 0; display: grid; gap: 7px; margin-right: auto; }
+.history-entry-title strong { font-size: 15px; line-height: 1.7; word-break: keep-all; overflow-wrap: anywhere; }
+.history-entry-title time { color: var(--muted); font-size: 11px; line-height: 1.7; }
+.history-status { flex-shrink: 0; font-size: 11px; font-weight: 600; line-height: 1.6; padding: 6px 10px; border-radius: 6px; background: var(--soft); color: var(--muted); }
+.history-status.resolved { color: var(--accent); background: var(--accent-soft); }
+.history-entry-body { padding: 22px; border-top: 1px solid var(--line); }
+.history-variant { font-size: 13px; margin-bottom: 18px; color: var(--muted); }
+.history-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.history-facts h3 { font-size: 14px; margin-bottom: 10px; }
+.history-facts ul, .history-device ul { margin: 0; padding-left: 18px; font-size: 12px; line-height: 2; color: var(--muted); }
+.history-facts p, .history-facts dl { font-size: 12px; line-height: 1.9; color: var(--muted); }
+.history-facts dl { display: grid; gap: 12px; margin: 0; }
+.history-facts dt { font-weight: 600; color: var(--ink); }
+.history-facts dd { margin: 4px 0 0; }
+.history-facts li, .history-facts dt, .history-facts dd, .history-device li { overflow-wrap: anywhere; }
+.history-device { border-top: 1px solid var(--line); margin-top: 18px; padding-top: 10px; }
+.history-device > summary { font-size: 12px; color: var(--accent); cursor: pointer; min-height: 44px; align-content: center; }
+.history-note { margin-top: 24px; }
+.history-note > div:last-child { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; }
+.history-note small { color: var(--muted); font-size: 11px; }
+.history-note button { font-size: 12px; }
+.history-note button:disabled { opacity: .55; cursor: default; }
+.history-entry-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 16px; margin-top: 18px; }
+.history-entry-actions > button { font-size: 12px; }
+.history-entry-actions > .history-delete { margin-left: auto; }
+.history-entry-actions button:disabled { cursor: default; opacity: .55; }
+.history-unsaved { font-size: 12px; margin-top: 10px; color: var(--muted); }
+.history-feedback { color: var(--accent); font-size: 12px; line-height: 1.9; margin-top: 14px; }
+.history-empty { margin-top: 18px; padding: 22px 0; }
+.history-empty h3 { font-size: 16px; margin-bottom: 10px; }
+.history-empty p { font-size: 13px; color: var(--muted); max-width: 70ch; }
+.history-more { display: flex; margin: 18px auto 0; color: var(--accent); }
+@media (max-width: 767px) {
+  .diagnosis-history { margin-top: 28px; padding-top: 26px; }
+  .history-entry > summary { padding: 16px; gap: 10px; flex-wrap: wrap; }
+  .history-entry-title { flex: 1 1 65%; }
+  .history-entry-title strong { font-size: 14px; }
+  .history-status { font-size: 10px; padding: 5px 8px; }
+  .history-entry-body { padding: 18px 16px; }
+  .history-facts { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .history-facts ul, .history-facts p, .history-facts dl, .history-storage { font-size: 13px; }
+  .history-entry-actions > .button { flex: 1; min-width: 0; padding-inline: 10px; }
+  .history-entry-actions > .history-delete { margin-left: 0; }
+}

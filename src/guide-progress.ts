@@ -1,9 +1,10 @@
 import type { Guide } from './content';
 
 export type GuideAnswer = { step: number; choiceId: string };
-export type GuideProgress = { guideId: string; step: number; reviewed: number[]; variant?: string; answers?: GuideAnswer[] };
+export type GuideProgress = { guideId: string; step: number; reviewed: number[]; variant?: string; answers?: GuideAnswer[]; note?: string; historyId?: string };
 export type ProgressStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 export const GUIDE_PROGRESS_KEY = 'hanno-guide-progress-v1';
+export const MAX_PROGRESS_LENGTH = 12000;
 
 function browserStorage(): ProgressStorage | undefined {
   try { return typeof window === 'undefined' ? undefined : window.localStorage; } catch { return undefined; }
@@ -18,6 +19,8 @@ function validProgress(value: unknown, guides: Guide[]): value is GuideProgress 
     && Array.isArray(progress.reviewed) && progress.reviewed.length <= guide.steps.length
     && progress.reviewed.every((step: unknown) => Number.isInteger(step) && (step as number) >= 0 && (step as number) < guide.steps.length)
     && new Set(progress.reviewed).size === progress.reviewed.length
+    && (progress.note === undefined || (typeof progress.note === 'string' && progress.note.length <= 1000))
+    && (progress.historyId === undefined || (typeof progress.historyId === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(progress.historyId)))
     && (progress.answers === undefined || (Array.isArray(progress.answers) && progress.answers.length <= guide.steps.length
       && progress.answers.every((answer: unknown, index: number, answers: unknown[]) => {
         if (!answer || typeof answer !== 'object' || Array.isArray(answer)) return false;
@@ -33,7 +36,7 @@ function validProgress(value: unknown, guides: Guide[]): value is GuideProgress 
 export function readGuideProgress(guides: Guide[], storage: ProgressStorage | undefined = browserStorage()): GuideProgress | null {
   try {
     const raw = storage?.getItem(GUIDE_PROGRESS_KEY);
-    if (!raw || raw.length > 2000) return null;
+    if (!raw || raw.length > MAX_PROGRESS_LENGTH) return null;
     const data: unknown = JSON.parse(raw);
     if (!data || typeof data !== 'object' || !('version' in data) || data.version !== 1 || !('progress' in data) || !validProgress(data.progress, guides)) return null;
     return data.progress;
@@ -43,7 +46,9 @@ export function readGuideProgress(guides: Guide[], storage: ProgressStorage | un
 export function saveGuideProgress(progress: GuideProgress, guides: Guide[], storage: ProgressStorage | undefined = browserStorage()): boolean {
   try {
     if (!storage || !validProgress(progress, guides)) return false;
-    storage.setItem(GUIDE_PROGRESS_KEY, JSON.stringify({ version: 1, progress }));
+    const raw = JSON.stringify({ version: 1, progress });
+    if (raw.length > MAX_PROGRESS_LENGTH) return false;
+    storage.setItem(GUIDE_PROGRESS_KEY, raw);
     return true;
   } catch { return false; }
 }

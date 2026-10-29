@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { createServer } from 'vite';
 import { renderToString } from 'react-dom/server';
 import { createElement } from 'react';
+import { MantineProvider } from '@mantine/core';
 
 const server = await createServer({ server: { middlewareMode: true, hmr: false }, appType: 'custom' });
 try {
@@ -31,7 +32,7 @@ try {
   assert.equal(new Set(guides.map(g => g.id)).size, guides.length, 'Unique guide IDs');
   assert.equal(new Set(topics.map(t => t.id)).size, topics.length, 'Unique topic IDs');
   for (const guide of guides) {
-    const html = renderToString(createElement(Diagnosis, { guide, onTopic() {}, onGuide() {} }));
+    const html = renderToString(createElement(MantineProvider, null, createElement(Diagnosis, { guide, onTopic() {}, onGuide() {} })));
     assert.ok(html.includes(guide.title));
     for (const match of html.matchAll(/\/icons\/([A-Za-z]+)\.svg/g)) assert.ok(existsSync(`public/icons/${match[1]}.svg`), `Missing icon ${match[1]}`);
     assert.equal(new URL(guide.source).protocol, 'https:');
