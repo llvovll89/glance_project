@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { MantineProvider, Select, TextInput } from '@mantine/core';
 import { formTheme } from './form-theme';
-import { guides, topics, type Guide, type Topic, type IconName } from './content';
+import { guides, topics, type Guide, type Topic, type IconName, type ResultChoice } from './content';
 import PcProfilePanel from './PcProfile';
 import ShellLab from './ShellLab';
 import { Dictionary, KnowledgeQuiz } from './LearningLibrary';
 import { guideGroups, filterGuides } from './guide-categories';
 import { readPcProfile, profileLines, type PcProfile } from './pc-profile';
-import { deleteGuideProgress, readGuideProgress, saveGuideProgress, type GuideProgress } from './guide-progress';
+import { deleteGuideProgress, readGuideProgress, saveGuideProgress, type GuideProgress, type GuideAnswer } from './guide-progress';
 
 type Theme = 'system' | 'light' | 'dark';
 const topicIcons: Record<string, IconName> = { cpu: 'Cpu', ram: 'Memory', ssd: 'HardDrives', gpu: 'GraphicsCard', os: 'Desktop', shell: 'TerminalWindow' };
@@ -57,36 +57,74 @@ export function Diagnosis({ guide, onTopic, onGuide, onProgress, initialProgress
   const [reviewed, setReviewed] = useState<number[]>(initialProgress?.reviewed ?? []);
   const [copyStatus, setCopyStatus] = useState('');
   const [variant, setVariant] = useState<string | undefined>(initialProgress?.variant);
+  const [answers, setAnswers] = useState<GuideAnswer[]>(initialProgress?.answers ?? []);
+  const stepHeading = useRef<HTMLHeadingElement>(null);
+  const shouldFocus = useRef(false);
+  useEffect(() => {
+    if (shouldFocus.current) { stepHeading.current?.focus(); shouldFocus.current = false; }
+  }, [step, done]);
   const current = guide.steps[step];
   const last = step === guide.steps.length - 1;
   const relatedTopics = (current.relatedTopics ?? guide.relatedTopics ?? ['ram', 'gpu']).map(id => topics.find(topic => topic.id === id)).filter((topic): topic is Topic => Boolean(topic));
-  function record(nextStep: number, nextReviewed: number[], nextVariant = variant) {
-    onProgress?.({ guideId: guide.id, step: nextStep, reviewed: nextReviewed, ...(nextVariant ? { variant: nextVariant } : {}) }, guide.id);
+  function record(nextStep: number, nextReviewed: number[], nextVariant = variant, nextAnswers = answers) {
+    onProgress?.({ guideId: guide.id, step: nextStep, reviewed: nextReviewed, answers: nextAnswers, ...(nextVariant ? { variant: nextVariant } : {}) }, guide.id);
+  }
+  function chooseResult(choice: ResultChoice) {
+    // Re-answering an earlier check invalidates the results after that check.
+    const nextAnswers = [...answers.filter(answer => answer.step < step), { step, choiceId: choice.id }];
+    const nextReviewed = [...reviewed.filter(index => index < step), step];
+    setAnswers(nextAnswers);
+    setReviewed(nextReviewed);
+    setCopyStatus('');
+    shouldFocus.current = true;
+    if (choice.target === 'resolved') {
+      setDone(true);
+      onProgress?.(null, guide.id);
+    } else {
+      setStep(choice.target);
+      record(choice.target, nextReviewed, variant, nextAnswers);
+    }
+  }
+  function advanceWithoutAnswer() {
+    const nextAnswers = answers.filter(answer => answer.step < step);
+    const nextReviewed = [...reviewed.filter(index => index < step), step];
+    setAnswers(nextAnswers);
+    setReviewed(nextReviewed);
+    setStep(step + 1);
+    setCopyStatus('');
+    shouldFocus.current = true;
+    record(step + 1, nextReviewed, variant, nextAnswers);
   }
   function confirmCurrent() {
-    const nextReviewed = reviewed.includes(step) ? reviewed : [...reviewed, step];
+    const nextReviewed = [...reviewed.filter(index => index < step), step];
+    setAnswers(answers.filter(answer => answer.step < step));
     setReviewed(nextReviewed);
     return nextReviewed;
   }
   async function copyReport() {
     const checked = reviewed.length ? reviewed.slice().sort().map(i => `- ${guide.steps[i].title}`).join('\n') : '확인 완료로 기록한 단계 없음';
     const device = profile ? '기기 사양(사용자가 입력한 기록):\n' + profileLines(profile).join('\n') : '기기 모델: (입력해 주세요)';
-    const report = `한눈 컴퓨터 점검 기록\n증상: ${guide.title}\n확인 완료한 단계:\n${checked}\n상태: ${done ? '사용자가 해결됨으로 표시' : '추가 확인 필요'}\n${device}\n실제 확인 결과: (입력해 주세요)`;
+    const results = answers.map(answer => {
+      const item = guide.steps[answer.step];
+      return `- ${item.question}: ${item.choices?.find(choice => choice.id === answer.choiceId)?.label}`;
+    }).join('\n') || '선택한 결과 없음';
+    const report = `한눈 컴퓨터 점검 기록\n증상: ${guide.title}\n확인 완료한 단계:\n${checked}\n선택한 확인 결과:\n${results}\n상태: ${done ? '사용자가 해결됨으로 표시' : '추가 확인 필요'}\n${device}\n실제 확인 결과: (입력해 주세요)`;
     try { await navigator.clipboard.writeText(report); setCopyStatus('복사했어요. 모델명과 실제 결과를 덧붙여 전달하세요.'); }
     catch { setCopyStatus('복사할 수 없어요. 확인한 단계와 결과를 직접 기록해 주세요.'); }
   }
   return <section className="diagnosis" aria-labelledby="guide-title">
     <div className="diagnosis-heading"><div><span className="guide-kicker">선택한 증상</span><h2 id="guide-title">{guide.title}</h2></div><span className="guide-scope"><Icon name="ShieldCheck" />외부 점검부터</span></div>
-    {guide.variants && <div className="guide-variants"><h3>어떤 상황에 가장 가까운가요?</h3><div>{guide.variants.map(option => <button key={option.id} aria-pressed={variant === option.id} onClick={() => { if (option.guideId) { onGuide(option.guideId); return; } setVariant(option.id); setStep(option.step); setDone(false); setReviewed([]); setCopyStatus(''); record(option.step, [], option.id); }}><span><strong>{option.title}</strong><span>{option.description}</span></span><Icon name={variant === option.id ? 'Check' : 'CaretRight'} /></button>)}</div></div>}
+    {guide.variants && <div className="guide-variants"><h3>어떤 상황에 가장 가까운가요?</h3><div>{guide.variants.map(option => <button key={option.id} aria-pressed={variant === option.id} onClick={() => { if (option.guideId) { onGuide(option.guideId); return; } setAnswers([]); setVariant(option.id); setStep(option.step); setDone(false); setReviewed([]); setCopyStatus(''); record(option.step, [], option.id, []); }}><span><strong>{option.title}</strong><span>{option.description}</span></span><Icon name={variant === option.id ? 'Check' : 'CaretRight'} /></button>)}</div></div>}
     <div className="diagnosis-workspace">
       <aside className="checklist"><h3>확인할 순서</h3><ol aria-label="점검 순서">{guide.steps.map((item, i) => <li key={item.title}><button className={`${!done && i === step ? 'is-current' : ''} ${reviewed.includes(i) ? 'is-reviewed' : ''}`} onClick={() => { setStep(i); setDone(false); setCopyStatus(''); record(i, reviewed); }} aria-current={!done && i === step ? 'step' : undefined}><span className="step-index">{reviewed.includes(i) ? <Icon name="Check" /> : i + 1}</span><span>{item.title}</span>{!done && i === step && <Icon name="CaretRight" />}</button></li>)}</ol><div className="checklist-foot"><Icon name="Info" /><p>익숙하지 않은 내부 작업은<br/>공식 지원을 받아 진행하세요.</p></div></aside>
       <div className="step-main"><div className="step-content" aria-live="polite" aria-atomic="true" key={done ? 'done' : step}>
-        {done ? <div className="completion"><span className="completion-symbol"><Icon name="CheckCircle" /></span><h3>다시 잘 작동한다니 다행이에요.</h3><p>해결됨으로 표시했어요. 같은 증상이 반복되면 발생 상황을 기록하고 공식 지원에 문의하세요.</p><button className="button button-secondary" onClick={() => { setDone(false); record(step, reviewed); }}><Icon name="ArrowLeft" />점검으로 돌아가기</button></div> : <>
-          <div className="step-meta"><span>{step + 1}번째 확인</span><span>전체 {guide.steps.length}단계</span></div><h3>{current.title}</h3>
+        {done ? <div className="completion"><span className="completion-symbol"><Icon name="CheckCircle" /></span><h3 ref={stepHeading} tabIndex={-1}>다시 잘 작동한다니 다행이에요.</h3><p>해결됨으로 표시했어요. 같은 증상이 반복되면 발생 상황을 기록하고 공식 지원에 문의하세요.</p><button className="button button-secondary" onClick={() => { setDone(false); shouldFocus.current = true; record(step, reviewed); }}><Icon name="ArrowLeft" />점검으로 돌아가기</button></div> : <>
+          <div className="step-meta"><span>{step + 1}번째 확인</span><span>전체 {guide.steps.length}단계</span></div><h3 ref={stepHeading} tabIndex={-1}>{current.title}</h3>
           <div className="step-explanation"><StepVisual guide={guide} step={step}/><div className="step-copy"><p>{current.body}</p>{current.check && <dl className="step-outcomes"><div><dt>확인할 결과</dt><dd>{current.check}</dd></div><div><dt>다음 행동</dt><dd>{current.next}</dd></div></dl>}{current.tip && <aside className="notice"><Icon name="Info" /><p>{current.tip}</p></aside>}</div></div>
-          <div className="step-actions"><button className="button button-secondary" onClick={() => { confirmCurrent(); setDone(true); onProgress?.(null, guide.id); }}><Icon name="Check" />해결됐어요</button>{!last ? <button className="button button-primary" onClick={() => { const nextReviewed = confirmCurrent(); setStep(step + 1); setCopyStatus(''); record(step + 1, nextReviewed); }}>다음 확인<Icon name="ArrowRight" /></button> : <a className="button button-primary" href={guide.source} target="_blank" rel="noreferrer">공식 지원 보기<Icon name="ArrowSquareOut" /></a>}</div>
+          {current.choices && <fieldset className="result-question"><legend>{current.question}</legend><p>확인한 결과를 고르면 다음 점검으로 이동해요.</p><div>{current.choices.map(choice => <button type="button" key={choice.id} onClick={() => chooseResult(choice)}><span>{choice.label}</span><Icon name={choice.target === 'resolved' ? 'Check' : 'ArrowRight'} /></button>)}</div><small>잘 모르겠으면 ‘다음 확인’으로 순서대로 진행해도 괜찮아요.</small></fieldset>}
+          <div className="step-actions"><button className="button button-secondary" onClick={() => { confirmCurrent(); setDone(true); onProgress?.(null, guide.id); }}><Icon name="Check" />해결됐어요</button>{!last ? <button className="button button-primary" onClick={advanceWithoutAnswer}>다음 확인<Icon name="ArrowRight" /></button> : <a className="button button-primary" href={guide.source} target="_blank" rel="noreferrer">공식 지원 보기<Icon name="ArrowSquareOut" /></a>}</div>
         </>}
-      </div><div className="guide-tools"><div><span>이 단계의 용어</span>{relatedTopics.map(topic => <button key={topic.id} onClick={() => onTopic(topic.id)}>{topic.title}</button>)}</div><button className="text-button" onClick={copyReport}><Icon name="Copy" />점검 기록 복사</button></div>{copyStatus && <p role="status" className="copy-status">{copyStatus}</p>}</div>
+      </div>{answers.length > 0 && <details className="answer-history"><summary>선택한 확인 결과 {answers.length}개</summary><ul>{answers.map(answer => <li key={answer.step}><span>{guide.steps[answer.step].question}</span><strong>{guide.steps[answer.step].choices?.find(choice => choice.id === answer.choiceId)?.label}</strong><button type="button" className="text-button" aria-label={`${answer.step + 1}번째 확인 결과 변경`} onClick={() => { setStep(answer.step); setDone(false); setCopyStatus(''); shouldFocus.current = true; record(answer.step, reviewed); }}>결과 변경</button></li>)}</ul></details>}<div className="guide-tools"><div><span>이 단계의 용어</span>{relatedTopics.map(topic => <button key={topic.id} onClick={() => onTopic(topic.id)}>{topic.title}</button>)}</div><button className="text-button" onClick={copyReport}><Icon name="Copy" />점검 기록 복사</button></div>{copyStatus && <p role="status" className="copy-status">{copyStatus}</p>}</div>
     </div>
     <details className="source-details"><summary><Icon name="BookOpen" />참고 자료와 안내 범위<Icon name="CaretDown" /></summary><p>참고: <a href={guide.source} target="_blank" rel="noreferrer">{guide.sourceName}</a>. 검토일 {guide.sourceDate ?? '2026.10.26'}.</p><p>기기별 매뉴얼을 우선 확인하세요. 이 가이드는 고장을 확정하지 않으며, 내부 부품의 분해나 교체를 안내하지 않습니다.</p></details>
   </section>;
