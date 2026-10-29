@@ -1,0 +1,92 @@
+.settings-visual {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+  min-width: 0;
+}
+.screen-guide-heading, .visual-dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.screen-guide-heading > div { min-width: 0; }
+.screen-guide-heading > div > span { font-size: 11px; color: var(--muted); }
+.screen-guide-heading h4 { margin-top: 6px; font-size: 17px; line-height: 1.6; word-break: keep-all; overflow-wrap: anywhere; }
+.screen-guide-heading button { flex-shrink: 0; font-size: 12px; min-height: 44px; }
+.screen-breadcrumb { font-size: 12px; color: var(--accent); line-height: 1.8; margin: 12px 0; overflow-wrap: anywhere; }
+.screen-open-path { font-size: 13px; line-height: 1.9; margin-bottom: 16px; word-break: keep-all; overflow-wrap: anywhere; }
+.screen-figure { margin: 0; }
+.screen-figure figcaption { margin-top: 10px; font-size: 11px; color: var(--muted); line-height: 1.9; }
+.screen-diagram { overflow: hidden; border: 1px solid var(--control-line); border-radius: 12px; background: var(--page); color: var(--ink); }
+.screen-window-bar { display: flex; justify-content: space-between; gap: 12px; padding: 12px 16px; font-size: 11px; border-bottom: 1px solid var(--line); }
+.screen-window-bar > span:last-child { color: var(--muted); }
+.screen-window-body { display: grid; grid-template-columns: 145px minmax(0, 1fr); }
+.screen-sidebar { display: flex; flex-direction: column; gap: 7px; padding: 20px 10px; border-right: 1px solid var(--line); }
+.screen-sidebar > span { padding: 9px 10px; font-size: 11px; line-height: 1.7; color: var(--muted); word-break: keep-all; }
+.screen-sidebar > .is-active { border-left: 3px solid var(--accent); padding-left: 7px; color: var(--accent); background: var(--accent-soft); border-radius: 5px; font-weight: 600; }
+.screen-canvas { min-width: 0; padding: 20px; }
+.screen-window-heading { font-size: 16px; font-weight: 700; line-height: 1.7; margin-bottom: 18px; word-break: keep-all; }
+.screen-diagram .screen-callout { border: 1px solid var(--accent); background: var(--accent-soft); }
+.screen-badge { width: 23px; height: 23px; display: inline-grid; place-items: center; flex-shrink: 0; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: 11px; font-weight: 700; line-height: 1; }
+.screen-row, .screen-status { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); margin-top: 8px; }
+.screen-row > div, .screen-status > div { min-width: 0; display: grid; gap: 3px; }
+.screen-row strong, .screen-status strong { font-size: 12px; font-weight: 600; line-height: 1.7; }
+.screen-row > div > span, .screen-status > div > span { font-size: 11px; line-height: 1.7; color: var(--muted); }
+.screen-status { margin-bottom: 16px; }
+.screen-status small { font-size: 10px; margin-left: 5px; }
+.screen-row-end { margin-left: auto; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.screen-muted-row { font-size: 12px; color: var(--muted); padding: 13px 12px; }
+.screen-section-label { display: flex; align-items: center; gap: 10px; margin: 18px 0 10px; font-size: 13px; font-weight: 600; }
+.screen-hint { font-size: 11px; line-height: 1.8; margin: 10px 0; color: var(--muted); }
+.screen-radio { display: inline-block; width: 13px; height: 13px; border: 1px solid var(--control-line); border-radius: 50%; flex-shrink: 0; }
+.screen-radio.is-selected { border: 4px solid var(--accent); }
+.screen-volume { display: block; position: relative; height: 4px; min-width: 40px; flex: 1; border-radius: 3px; background: var(--control-line); margin: 10px 3px 10px 8px; }
+.screen-volume > span { display: block; width: 26%; height: 100%; border-radius: inherit; background: var(--accent); }
+.screen-volume > i { position: absolute; left: 26%; top: 50%; width: 12px; height: 12px; transform: translate(-50%, -50%); border: 3px solid var(--surface); border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--control-line); }
+.screen-app-volume { flex-wrap: wrap; }
+.screen-app-volume .screen-volume { flex-basis: 100%; margin-left: 4px; }
+.screen-process-table { font-size: 11px; line-height: 1.7; }
+.screen-process-table > div { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr)); border-bottom: 1px solid var(--line); }
+.screen-process-table > div > span { padding: 13px 6px; overflow-wrap: anywhere; }
+.screen-process-table > div > span + span { border-left: 1px solid var(--line); text-align: right; }
+.screen-process-head { font-weight: 600; }
+.screen-process-head > .screen-callout { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; padding: 8px 4px; }
+.screen-points { display: grid; gap: 15px; list-style: none; padding: 0; margin: 20px 0; }
+.screen-points > li { display: flex; align-items: flex-start; gap: 10px; }
+.screen-points > li > .screen-badge { margin-top: 2px; }
+.screen-points strong { font-size: 13px; line-height: 1.8; }
+.screen-points p { font-size: 12px; color: var(--muted); line-height: 1.9; margin-top: 3px; word-break: keep-all; overflow-wrap: anywhere; }
+.screen-note { border-left: 2px solid var(--accent); padding-left: 12px; font-size: 12px; line-height: 1.9; color: var(--muted); }
+.screen-source { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 11px; line-height: 1.8; margin: 14px 0 0; color: var(--muted); }
+.screen-source a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.visual-dialog { width: min(960px, calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--control-line); border-radius: 20px; background: var(--surface); color: var(--ink); margin: auto; overscroll-behavior: contain; }
+.visual-dialog::backdrop { background: rgb(15 23 42 / .55); }
+.visual-dialog-inner { padding: 28px; }
+.visual-dialog-heading { align-items: flex-start; }
+.visual-dialog-heading h2 { font-size: 23px; line-height: 1.5; word-break: keep-all; overflow-wrap: anywhere; }
+.visual-dialog-heading button { font-size: 13px; min-height: 44px; flex-shrink: 0; }
+.visual-dialog .screen-canvas { padding: 28px; }
+.visual-dialog .screen-window-heading { font-size: 22px; }
+.visual-dialog .screen-row { padding: 18px; }
+.visual-dialog .screen-row strong, .visual-dialog .screen-status strong { font-size: 15px; }
+.visual-dialog .screen-process-table { font-size: 14px; }
+.visual-dialog .screen-points { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+@media (max-width: 1100px) { .settings-visual .screen-sidebar { display: none; } .settings-visual .screen-window-body { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 767px) {
+  .settings-visual { margin-top: 24px; padding-top: 20px; }
+  .screen-guide-heading { align-items: flex-start; gap: 10px; }
+  .screen-guide-heading h4 { font-size: 16px; }
+  .screen-guide-heading button { padding: 0 4px; font-size: 12px; }
+  .screen-canvas, .visual-dialog .screen-canvas { padding: 16px; }
+  .screen-window-heading, .visual-dialog .screen-window-heading { font-size: 16px; }
+  .screen-points p, .screen-note { font-size: 13px; }
+  .screen-sidebar { display: none; }
+  .screen-window-body { grid-template-columns: minmax(0, 1fr); }
+  .visual-dialog-inner { padding: 20px; }
+  .visual-dialog-heading h2 { font-size: 20px; }
+  .visual-dialog .screen-row { padding: 12px; }
+  .visual-dialog .screen-row strong { font-size: 13px; }
+  .visual-dialog .screen-process-table { font-size: 12px; }
+  .visual-dialog .screen-points { grid-template-columns: minmax(0, 1fr); gap: 15px; }
+}

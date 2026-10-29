@@ -18,3 +18,13 @@ public/icons/*.svg
 ## 모바일 전달 최적화
 원본 PNG에서 640/1024/1536px WebP를 생성해 화면 크기에 따라 선택하도록 srcset/sizes를 적용했습니다.
 이는 이미지 내용 편집이 아닌 파일 형식과 전송 크기 최적화입니다. 원본 PNG는 제작 자산으로 보존합니다.
+
+## Windows 11 설정 안내 그림
+
+`src/SettingsVisual.tsx`, `src/settings-visual.css`에서 직접 구성한 HTML/CSS 안내도입니다. 실제 Windows 화면 캡처나 외부 이미지 자산을 사용하지 않으며, 필요한 메뉴와 번호별 확인 위치만 표현합니다. 사용자 기기의 상태나 개인정보를 수집하지 않습니다.
+
+2026-10-29에 다음 Microsoft 공식 안내에서 메뉴 경로와 확인할 내용을 검토했습니다. 그림과 텍스트에는 예시 표시, 버전·기기별 차이 안내, 해당 공식 출처 링크와 검토일을 함께 제공합니다.
+
+- [네트워크 설정과 연결 상태](https://support.microsoft.com/ko-kr/windows/experience/connectivity-networking/essential-network-settings-and-tasks-in-windows)
+- [소리 출력 장치와 볼륨 점검](https://support.microsoft.com/ko-kr/windows/hardware/audio/fix-sound-or-audio-problems-in-windows)
+- [작업 관리자와 PC 성능 점검](https://support.microsoft.com/ko-kr/windows/experience/performance-optimization/tips-to-improve-pc-performance-in-windows)

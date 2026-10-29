@@ -4,6 +4,7 @@ import { formTheme } from './form-theme';
 import { guides, topics, type Guide, type Topic, type IconName, type ResultChoice } from './content';
 import PcProfilePanel from './PcProfile';
 import ShellLab from './ShellLab';
+import SettingsVisual from './SettingsVisual';
 import { Dictionary, KnowledgeQuiz } from './LearningLibrary';
 import { guideGroups, filterGuides } from './guide-categories';
 import { readPcProfile, profileLines, type PcProfile } from './pc-profile';
@@ -121,6 +122,7 @@ export function Diagnosis({ guide, onTopic, onGuide, onProgress, initialProgress
         {done ? <div className="completion"><span className="completion-symbol"><Icon name="CheckCircle" /></span><h3 ref={stepHeading} tabIndex={-1}>다시 잘 작동한다니 다행이에요.</h3><p>해결됨으로 표시했어요. 같은 증상이 반복되면 발생 상황을 기록하고 공식 지원에 문의하세요.</p><button className="button button-secondary" onClick={() => { setDone(false); shouldFocus.current = true; record(step, reviewed); }}><Icon name="ArrowLeft" />점검으로 돌아가기</button></div> : <>
           <div className="step-meta"><span>{step + 1}번째 확인</span><span>전체 {guide.steps.length}단계</span></div><h3 ref={stepHeading} tabIndex={-1}>{current.title}</h3>
           <div className="step-explanation"><StepVisual guide={guide} step={step}/><div className="step-copy"><p>{current.body}</p>{current.check && <dl className="step-outcomes"><div><dt>확인할 결과</dt><dd>{current.check}</dd></div><div><dt>다음 행동</dt><dd>{current.next}</dd></div></dl>}{current.tip && <aside className="notice"><Icon name="Info" /><p>{current.tip}</p></aside>}</div></div>
+          <SettingsVisual guideId={guide.id} step={step} />
           {current.choices && <fieldset className="result-question"><legend>{current.question}</legend><p>확인한 결과를 고르면 다음 점검으로 이동해요.</p><div>{current.choices.map(choice => <button type="button" key={choice.id} onClick={() => chooseResult(choice)}><span>{choice.label}</span><Icon name={choice.target === 'resolved' ? 'Check' : 'ArrowRight'} /></button>)}</div><small>잘 모르겠으면 ‘다음 확인’으로 순서대로 진행해도 괜찮아요.</small></fieldset>}
           <div className="step-actions"><button className="button button-secondary" onClick={() => { confirmCurrent(); setDone(true); onProgress?.(null, guide.id); }}><Icon name="Check" />해결됐어요</button>{!last ? <button className="button button-primary" onClick={advanceWithoutAnswer}>다음 확인<Icon name="ArrowRight" /></button> : <a className="button button-primary" href={guide.source} target="_blank" rel="noreferrer">공식 지원 보기<Icon name="ArrowSquareOut" /></a>}</div>
         </>}

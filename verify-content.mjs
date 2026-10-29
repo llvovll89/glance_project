@@ -8,6 +8,26 @@ const server = await createServer({ server: { middlewareMode: true, hmr: false }
 try {
   const { guides, topics } = await server.ssrLoadModule('/src/content.ts');
   const { Diagnosis } = await server.ssrLoadModule('/src/App.tsx');
+  const { screenGuides, screenGuideTargets, findScreenGuide } = await server.ssrLoadModule('/src/settings-visuals.ts');
+  const { default: SettingsVisual } = await server.ssrLoadModule('/src/SettingsVisual.tsx');
+  assert.equal(new Set(screenGuideTargets.map(target => `${target.guideId}:${target.step}`)).size, screenGuideTargets.length);
+  for (const target of screenGuideTargets) {
+    assert.ok(guides.find(guide => guide.id === target.guideId)?.steps[target.step], 'Screen guide must refer to an existing check');
+    const screen = findScreenGuide(target.guideId, target.step);
+    assert.equal(screen, screenGuides[target.screen]);
+    const html = renderToString(createElement(SettingsVisual, target));
+    assert.ok(html.includes(screen.title) && html.includes('role="img"'));
+    assert.ok(html.includes('aria-haspopup="dialog"'));
+  }
+  assert.equal(findScreenGuide('missing', 0), undefined);
+  assert.equal(renderToString(createElement(SettingsVisual, { guideId: 'display', step: 0 })), '');
+  for (const [id, screen] of Object.entries(screenGuides)) {
+    assert.equal(screen.id, id);
+    assert.ok(screen.path.length >= 2 && screen.open.trim() && screen.note.trim() && screen.reviewed);
+    assert.ok(screen.points.length >= 2 && screen.points.every(point => point.title.trim() && point.description.trim()));
+    assert.equal(new URL(screen.source).hostname, 'support.microsoft.com');
+    assert.equal(new URL(screen.source).protocol, 'https:');
+  }
   assert.equal(new Set(guides.map(g => g.id)).size, guides.length, 'Unique guide IDs');
   assert.equal(new Set(topics.map(t => t.id)).size, topics.length, 'Unique topic IDs');
   for (const guide of guides) {
