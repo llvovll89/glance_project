@@ -20,6 +20,14 @@ try {
       assert.ok(target?.steps[variant.step], `${guide.id}/${variant.id}: route must reach an existing step`);
     }
     for (const step of guide.steps) {
+      if (step.choices) {
+        assert.ok(step.question?.trim() && step.choices.length >= 2, `${guide.id}: result question and choices`);
+        assert.equal(new Set(step.choices.map(choice => choice.id)).size, step.choices.length);
+        for (const choice of step.choices) {
+          assert.ok(choice.id.trim() && choice.label.trim());
+          assert.ok(choice.target === 'resolved' || (Number.isInteger(choice.target) && choice.target > guide.steps.indexOf(step) && guide.steps[choice.target]), `${guide.id}/${choice.id}: forward branch destination`);
+        }
+      }
       for (const topic of step.relatedTopics ?? guide.relatedTopics ?? []) assert.ok(topics.some(t => t.id === topic), `${guide.id}: unresolved topic ${topic}`);
       if (step.visual) assert.ok(existsSync(`public/icons/${step.visual.icon}.svg`));
     }

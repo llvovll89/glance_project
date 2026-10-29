@@ -11,6 +11,12 @@ try {
   assert.equal(progress.readGuideProgress(guides, storage), null);
   assert.equal(progress.saveGuideProgress(sample, guides, storage), true);
   assert.deepEqual(progress.readGuideProgress(guides, storage), sample);
+  const branched = { guideId: 'network', step: 3, reviewed: [0], answers: [{ step: 0, choiceId: 'all-devices' }] };
+  assert.equal(progress.saveGuideProgress(branched, guides, storage), true);
+  assert.deepEqual(progress.readGuideProgress(guides, storage), branched);
+  for (const answers of [null, {}, [null], [{ step: -1, choiceId: 'all-devices' }], [{ step: 0, choiceId: 'unknown' }], [{ step: 1, choiceId: 'working' }], [{ step: 0, choiceId: 'all-devices' }, { step: 0, choiceId: 'pc-only' }]]) {
+    assert.equal(progress.saveGuideProgress({ ...branched, answers }, guides, storage), false);
+  }
   assert.equal(progress.deleteGuideProgress(storage), true);
   assert.equal(progress.readGuideProgress(guides, storage), null);
   const guideWithVariants = guides.find(guide => guide.variants?.some(variant => !variant.guideId));

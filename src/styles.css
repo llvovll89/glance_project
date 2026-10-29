@@ -3,6 +3,20 @@
 @import "./shell-lab.css";
 @import "./pc-inputs.css";
 @import "./library.css";
+.result-question{min-width:0;margin:26px 0 0;padding:20px;border:1px solid var(--control-line);border-radius:var(--radius-control)}
+.result-question legend{padding:0 6px;font-size:15px;font-weight:700;line-height:1.6;max-width:100%;word-break:keep-all;overflow-wrap:anywhere}
+.result-question p,.result-question small{display:block;font-size:12px;line-height:1.8;color:var(--muted)}
+.result-question>div{display:grid;gap:10px;margin:14px 0}
+.result-question button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;padding:12px 14px;text-align:left;font-size:14px;line-height:1.7;color:var(--ink);background:var(--page);border:1px solid var(--control-line);border-radius:var(--radius-control);word-break:keep-all;overflow-wrap:anywhere}
+.result-question button:hover{background:var(--accent-soft);border-color:var(--accent)}
+.result-question button>.icon{width:18px;height:18px;flex-shrink:0;color:var(--accent)}
+.answer-history{padding:16px 0;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.answer-history summary{cursor:pointer;min-height:32px;align-content:center;color:var(--accent);font-weight:600}
+.answer-history ul{list-style:none;padding:0;display:grid;gap:12px;margin:12px 0 0}
+.answer-history li{display:grid;gap:5px;line-height:1.7}
+.answer-history strong{color:var(--ink);font-weight:600}
+.answer-history button{justify-self:start;min-height:44px;font-size:12px}
+@media(max-width:767px){.result-question{padding:16px}.result-question legend{font-size:14px}.result-question button{padding:12px;font-size:14px}}
 .resume-card{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:28px;padding:22px 26px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--radius-panel)}.resume-card>div:first-child{min-width:0}.resume-card span{font-size:11px;font-weight:700;color:var(--accent)}.resume-card h2{font-size:18px;line-height:1.5;margin:4px 0}.resume-card p{font-size:12px;line-height:1.7;color:var(--muted)}.resume-actions{display:flex;align-items:center;gap:12px;flex-shrink:0}.resume-actions .button,.resume-actions .text-button{font-size:12px}
 @media(max-width:767px){.resume-card{flex-direction:column;align-items:stretch;padding:20px;gap:16px}.resume-actions{justify-content:space-between}.resume-actions .button{flex:1}}
 /* Symptom routes and result guidance extend the existing cobalt workspace. */

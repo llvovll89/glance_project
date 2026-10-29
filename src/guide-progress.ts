@@ -1,6 +1,7 @@
 import type { Guide } from './content';
 
-export type GuideProgress = { guideId: string; step: number; reviewed: number[]; variant?: string };
+export type GuideAnswer = { step: number; choiceId: string };
+export type GuideProgress = { guideId: string; step: number; reviewed: number[]; variant?: string; answers?: GuideAnswer[] };
 export type ProgressStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 export const GUIDE_PROGRESS_KEY = 'hanno-guide-progress-v1';
 
@@ -17,6 +18,15 @@ function validProgress(value: unknown, guides: Guide[]): value is GuideProgress 
     && Array.isArray(progress.reviewed) && progress.reviewed.length <= guide.steps.length
     && progress.reviewed.every((step: unknown) => Number.isInteger(step) && (step as number) >= 0 && (step as number) < guide.steps.length)
     && new Set(progress.reviewed).size === progress.reviewed.length
+    && (progress.answers === undefined || (Array.isArray(progress.answers) && progress.answers.length <= guide.steps.length
+      && progress.answers.every((answer: unknown, index: number, answers: unknown[]) => {
+        if (!answer || typeof answer !== 'object' || Array.isArray(answer)) return false;
+        const item = answer as Record<string, unknown>;
+        return Number.isInteger(item.step) && (item.step as number) >= 0
+          && Boolean(guide.steps[item.step as number]?.choices?.some(choice => choice.id === item.choiceId))
+          && (index === 0 || (answers[index - 1] as GuideAnswer).step < (item.step as number))
+          && (progress.reviewed as number[]).includes(item.step as number);
+      })))
     && (progress.variant === undefined || (typeof progress.variant === 'string' && Boolean(guide.variants?.some(item => item.id === progress.variant))));
 }
 
