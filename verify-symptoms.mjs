@@ -22,6 +22,7 @@ globalThis.ResizeObserver = class {
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 dom.window.HTMLDialogElement.prototype.close = () => {};
 dom.window.HTMLElement.prototype.scrollIntoView = () => {};
+dom.window.scrollTo = () => {};
 
 const { act, createElement } = await import('react');
 const { createRoot } = await import('react-dom/client');
@@ -66,7 +67,7 @@ try {
   await click(document.querySelector('.theme-select input'));
   await click([...document.querySelectorAll('[role="option"]')].find(option => option.textContent.includes('어두운 화면')));
   assert.equal(document.documentElement.dataset.theme, 'dark', 'Theme select updates the app theme');
-  await click([...document.querySelectorAll('.site-header nav button')].find(button => button.textContent.includes('내 PC 알아보기')));
+  await click([...document.querySelectorAll('.site-header nav a')].find(button => button.textContent.includes('내 PC 알아보기')));
   await click(document.getElementById('pc-device'));
   await click([...document.querySelectorAll('[role="option"]')].find(option => option.textContent.includes('노트북')));
   assert.equal(document.getElementById('pc-device').value, '노트북', 'PC select updates its displayed value');
