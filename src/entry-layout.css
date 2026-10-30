@@ -1,0 +1,12 @@
+/* Search and symptoms are the first task on the help page. */
+.help-page .help-intro { margin: 4px 0 24px; }
+.help-intro h1 { font-size: clamp(26px, 3vw, 38px); font-weight: 780; line-height: 1.3; letter-spacing: -.05em; }
+.help-intro p { margin-top: 10px; font-size: 15px; line-height: 1.7; color: var(--muted); }
+.help-page .search-section { margin-bottom: 20px; }
+
+@media (max-width: 767px) {
+  .help-page .help-intro { margin: 0 0 18px; }
+  .help-intro h1 { max-width: 19ch; font-size: 28px; }
+  .help-intro p { font-size: 14px; }
+  .help-page .search-section { margin-bottom: 16px; }
+}
