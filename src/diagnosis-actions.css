@@ -1,0 +1,14 @@
+.diagnosis .result-question button { border-color: var(--accent); background: var(--accent-soft); font-weight: 650; }
+.step-actions-fallback { align-items: center; }
+.step-actions-fallback > span { font-size: 13px; line-height: 1.7; color: var(--muted); }
+.diagnosis-finish { margin: 0 0 20px; border-top: 1px solid var(--line); }
+.diagnosis-finish summary { min-height: 48px; padding: 14px 0; cursor: pointer; font-size: 13px; color: var(--muted); }
+.diagnosis-finish p { max-width: 60ch; font-size: 13px; line-height: 1.8; color: var(--muted); }
+.diagnosis-finish > div { display: flex; flex-wrap: wrap; gap: 12px; margin: 14px 0; }
+.diagnosis-finish .button { min-height: 48px; font-size: 14px; }
+@media (max-width: 767px) {
+  .step-actions-fallback { flex-wrap: wrap; }
+  .step-actions-fallback > span { flex: 1; }
+  .step-actions-fallback .button { flex: 0 0 auto; }
+  .diagnosis-finish > div { flex-direction: column; }
+}

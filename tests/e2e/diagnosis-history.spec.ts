@@ -1,3 +1,4 @@
+import { finishDiagnosis } from './helpers/diagnosis';
 import { expect, test, type Page } from '@playwright/test';
 
 const historyKey = 'hanno-diagnosis-history-v1';
@@ -34,9 +35,9 @@ test('메모를 수정해 복사하고 한 기록만 삭제한다', async ({ pag
     Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (value: string) => { (window as unknown as { report: string }).report = value; } } });
   });
   await page.goto('/');
-  await page.getByRole('button', { name: '해결됐어요' }).click();
+  await finishDiagnosis(page, 'resolved');
   await page.locator('.symptom-option').filter({ hasText: '전원을 켜면 삐 소리가 나요' }).click();
-  await page.getByRole('button', { name: '미해결로 기록', exact: true }).click();
+  await finishDiagnosis(page, 'unresolved');
   const history = page.getByRole('region', { name: '점검 이력', exact: true });
   const entry = history.locator('.history-entry').filter({ hasText: '본체는 켜지는데 화면이 안 나와요' });
   await entry.locator(':scope > summary').click();
@@ -56,10 +57,10 @@ test('메모를 수정해 복사하고 한 기록만 삭제한다', async ({ pag
 test('같은 점검을 다시 저장해도 중복되지 않고 재점검은 처음부터 시작한다', async ({ page }) => {
   await page.goto('/');
   await memo(page, '같은 증상이 반복됨');
-  await page.getByRole('button', { name: '미해결로 기록', exact: true }).click();
+  await finishDiagnosis(page, 'unresolved');
   await page.getByRole('button', { name: '점검으로 돌아가기' }).click();
   await page.getByRole('button', { name: '다음 확인' }).click();
-  await page.getByRole('button', { name: '해결됐어요' }).click();
+  await finishDiagnosis(page, 'resolved');
   const history = page.getByRole('region', { name: '점검 이력', exact: true });
   await expect(history.locator('.history-entry')).toHaveCount(1);
   await history.locator('.history-entry > summary').click();
@@ -67,13 +68,13 @@ test('같은 점검을 다시 저장해도 중복되지 않고 재점검은 처�
   await history.getByRole('textbox', { name: '메모 수정' }).fill('저장한 메모를 나중에 수정함');
   await history.getByRole('button', { name: '메모 저장' }).click();
   await page.getByRole('button', { name: '점검으로 돌아가기' }).click();
-  await page.getByRole('button', { name: '해결됐어요' }).click();
+  await finishDiagnosis(page, 'resolved');
   await expect(history.getByRole('textbox', { name: '메모 수정' })).toHaveValue('저장한 메모를 나중에 수정함');
   await history.getByRole('button', { name: '다시 점검', exact: true }).click();
   await expect(page.getByText('1번째 확인', { exact: true })).toBeVisible();
   await expect(page.locator('.checklist button.is-reviewed')).toHaveCount(0);
   await expect(history.locator('.history-entry')).toHaveCount(1);
-  await page.getByRole('button', { name: '해결됐어요' }).click();
+  await finishDiagnosis(page, 'resolved');
   await expect(history.locator('.history-entry')).toHaveCount(2);
 });
 
@@ -89,7 +90,7 @@ test('이력 저장에 실패하면 진행 상태를 유지하고 다시 저장�
   await page.goto('/');
   await page.getByRole('button', { name: '다음 확인' }).click();
   await memo(page, '저장 실패에도 남겨야 하는 메모');
-  await page.getByRole('button', { name: '해결됐어요' }).click();
+  await finishDiagnosis(page, 'resolved');
   await expect(page.getByRole('alert')).toContainText('점검 이력을 저장하지 못했어요');
   expect(await page.evaluate(key => JSON.parse(localStorage.getItem(key)!).progress.note, progressKey)).toBe('저장 실패에도 남겨야 하는 메모');
   await expect(page.getByRole('region', { name: '이어서 점검' })).toBeVisible();
@@ -105,7 +106,7 @@ test('보관 한도에서 기존 기록을 지우지 않고 빈자리가 생기�
     localStorage.setItem(key, JSON.stringify({ version: 1, records: Array.from({ length: 50 }, (_, index) => ({ id: `record-${index}`, guideId: 'display', title: `이전 점검 ${index + 1}`, recordedAt: '2026-10-29T00:00:00.000Z', status: 'resolved', checked: [], answers: [], device: [], variant: '', note: '' })) }));
   }, historyKey);
   await page.goto('/');
-  await page.getByRole('button', { name: '해결됐어요' }).click();
+  await finishDiagnosis(page, 'resolved');
   await expect(page.getByRole('alert')).toContainText('50개까지');
   expect(await page.evaluate(key => JSON.parse(localStorage.getItem(key)!).records.length, historyKey)).toBe(50);
   const history = page.getByRole('region', { name: '점검 이력', exact: true });
