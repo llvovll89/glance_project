@@ -37,14 +37,14 @@ export const windowsCollector = String.raw`& {
     $pcSpecsJson = $pcSpecsResult | ConvertTo-Json -Depth 4
     try {
       Set-Clipboard -Value $pcSpecsJson
-      Write-Host 'PC specs copied. Return to Hanno and click Import from clipboard.'
+      [Console]::Error.WriteLine('PC specs copied. Return to Hanno and click Import from clipboard.')
       $pcSpecsJson
     } catch {
-      Write-Host 'Clipboard unavailable. Copy the JSON below instead:'
+      [Console]::Error.WriteLine('Clipboard unavailable. Copy the JSON below instead:')
       $pcSpecsJson
     }
   } catch {
-    Write-Host 'Could not read Windows hardware information. Use manual entry or check with your administrator.'
+    [Console]::Error.WriteLine('Could not read Windows hardware information. Use manual entry or check with your administrator.')
   }
 }`;
 
@@ -58,7 +58,11 @@ export const cmdCollector = powerShellForCmd(windowsCollector);
 export const macCollector = String.raw`result=$({
   printf 'hanno-specs-v1\tmacos\n'
   model=$(sysctl -n hw.model 2>/dev/null)
-  case "$model" in MacBook*) kind=laptop ;; iMac*|Macmini*|MacPro*|MacStudio*) kind=desktop ;; *) kind=unknown ;; esac
+  case "$model" in
+    (MacBook*) kind=laptop ;;
+    (iMac*|Macmini*|MacPro*|MacStudio*) kind=desktop ;;
+    (*) kind=unknown ;;
+  esac
   printf 'nickname\t%s\ndeviceType\t%s\nos\tmacos\n' "$model" "$kind"
   printf 'osVersion\t%s\n' "$(sw_vers -productVersion 2>/dev/null)"
   cpu=$(sysctl -n machdep.cpu.brand_string 2>/dev/null)
@@ -70,13 +74,17 @@ export const macCollector = String.raw`result=$({
   diskutil info / 2>/dev/null | awk -F: '/^[[:space:]]*Disk Size:/ { sub(/^[[:space:]]+/, "", $2); print "storage\t" $2; exit }'
 })
 printf '%s\n' "$result"
-if printf '%s' "$result" | pbcopy; then printf 'PC specs copied. Return to Hanno and click Import from clipboard.\n'; fi`;
+if printf '%s' "$result" | pbcopy; then printf 'PC specs copied. Return to Hanno and click Import from clipboard.\n' >&2; fi`;
 
 export const linuxCollector = String.raw`result=$({
   printf 'hanno-specs-v1\tlinux\n'
   model=$(cat /sys/devices/virtual/dmi/id/product_name 2>/dev/null)
   chassis=$(cat /sys/class/dmi/id/chassis_type 2>/dev/null)
-  case "$chassis" in 8|9|10|14) kind=laptop ;; 3|4|5|6|7|11|13) kind=desktop ;; *) kind=unknown ;; esac
+  case "$chassis" in
+    (8|9|10|14) kind=laptop ;;
+    (3|4|5|6|7|11|13) kind=desktop ;;
+    (*) kind=unknown ;;
+  esac
   printf 'nickname\t%s\ndeviceType\t%s\nos\tlinux\n' "$model" "$kind"
   awk -F= '$1 == "PRETTY_NAME" { gsub(/^"|"$/, "", $2); print "osVersion\t" $2; exit }' /etc/os-release 2>/dev/null
   awk -F: '/^model name/ { sub(/^[[:space:]]+/, "", $2); print "cpu\t" $2; exit }' /proc/cpuinfo 2>/dev/null
@@ -89,7 +97,7 @@ if command -v wl-copy >/dev/null 2>&1; then printf '%s' "$result" | wl-copy
 elif command -v xclip >/dev/null 2>&1; then printf '%s' "$result" | xclip -selection clipboard
 elif command -v xsel >/dev/null 2>&1; then printf '%s' "$result" | xsel --clipboard --input
 fi
-printf 'If clipboard support is unavailable, copy the result above into Hanno.\n'`;
+printf 'If clipboard support is unavailable, copy the result above into Hanno.\n' >&2`;
 
 export const collectors = {
   powershell: { label: 'Windows PowerShell', command: windowsCollector },

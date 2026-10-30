@@ -43,6 +43,13 @@ try {
   async function selectGroup(label) {
     await click([...symptoms.querySelectorAll('.guide-filters button')].find(button => button.textContent.startsWith(label)));
   }
+  async function waitForSelector(selector) {
+    const deadline = Date.now() + 5000;
+    while (!document.querySelector(selector)) {
+      assert.ok(Date.now() < deadline, `Timed out waiting for ${selector}`);
+      await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)); });
+    }
+  }
 
   assert.equal(options().length, 6, 'Initially shows six symptoms');
   assert.match(symptoms.querySelector('.symptom-more').textContent, /6 \/ 30개 표시/);
@@ -68,6 +75,7 @@ try {
   await click([...document.querySelectorAll('[role="option"]')].find(option => option.textContent.includes('어두운 화면')));
   assert.equal(document.documentElement.dataset.theme, 'dark', 'Theme select updates the app theme');
   await click([...document.querySelectorAll('.site-header nav a')].find(button => button.textContent.includes('내 PC 알아보기')));
+  await waitForSelector('#pc-device');
   await click(document.getElementById('pc-device'));
   await click([...document.querySelectorAll('[role="option"]')].find(option => option.textContent.includes('노트북')));
   assert.equal(document.getElementById('pc-device').value, '노트북', 'PC select updates its displayed value');
