@@ -37,14 +37,14 @@ export const windowsCollector = String.raw`& {
     $pcSpecsJson = $pcSpecsResult | ConvertTo-Json -Depth 4
     try {
       Set-Clipboard -Value $pcSpecsJson
-      Write-Host 'PC specs copied. Return to Hanno and click Import from clipboard.'
+      [Console]::Error.WriteLine('PC specs copied. Return to Hanno and click Import from clipboard.')
       $pcSpecsJson
     } catch {
-      Write-Host 'Clipboard unavailable. Copy the JSON below instead:'
+      [Console]::Error.WriteLine('Clipboard unavailable. Copy the JSON below instead:')
       $pcSpecsJson
     }
   } catch {
-    Write-Host 'Could not read Windows hardware information. Use manual entry or check with your administrator.'
+    [Console]::Error.WriteLine('Could not read Windows hardware information. Use manual entry or check with your administrator.')
   }
 }`;
 
@@ -70,7 +70,7 @@ export const macCollector = String.raw`result=$({
   diskutil info / 2>/dev/null | awk -F: '/^[[:space:]]*Disk Size:/ { sub(/^[[:space:]]+/, "", $2); print "storage\t" $2; exit }'
 })
 printf '%s\n' "$result"
-if printf '%s' "$result" | pbcopy; then printf 'PC specs copied. Return to Hanno and click Import from clipboard.\n'; fi`;
+if printf '%s' "$result" | pbcopy; then printf 'PC specs copied. Return to Hanno and click Import from clipboard.\n' >&2; fi`;
 
 export const linuxCollector = String.raw`result=$({
   printf 'hanno-specs-v1\tlinux\n'
@@ -89,7 +89,7 @@ if command -v wl-copy >/dev/null 2>&1; then printf '%s' "$result" | wl-copy
 elif command -v xclip >/dev/null 2>&1; then printf '%s' "$result" | xclip -selection clipboard
 elif command -v xsel >/dev/null 2>&1; then printf '%s' "$result" | xsel --clipboard --input
 fi
-printf 'If clipboard support is unavailable, copy the result above into Hanno.\n'`;
+printf 'If clipboard support is unavailable, copy the result above into Hanno.\n' >&2`;
 
 export const collectors = {
   powershell: { label: 'Windows PowerShell', command: windowsCollector },

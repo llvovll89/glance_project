@@ -48,6 +48,7 @@ try {
   assert.equal(cmdResult.status, 0, cmdResult.stderr || cmdResult.error?.message);
   assert.match(cmdResult.stdout, /"cpu"\s*:\s*"Test CPU"/);
   assert.match(cmdResult.stdout, /"ram"\s*:\s*"16 GiB"/);
+  assert.equal(imp.parseProfileImport(cmdResult.stdout).ok, true, 'Collector stdout must not be mixed with status messages');
   for (const platform of ['mac', 'linux']) {
     const shellPath = join(root, `${platform}.sh`);
     writeFileSync(shellPath, imp.collectors[platform].command);

@@ -7,6 +7,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "verify:performance": "node verify-performance.mjs",
+    "verify:native": "node verify-native-collector.mjs",
     "test:e2e": "playwright test",
     "preview": "vite preview",
     "verify": "node verify-design.mjs && node verify-content.mjs && node verify-profile.mjs && node verify-progress.mjs && node verify-history.mjs && node verify-lab.mjs && node verify-import.mjs && node verify-library.mjs && node verify-symptoms.mjs"
