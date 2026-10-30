@@ -57,3 +57,17 @@ test('모바일에서도 긴 결과 선택지가 화면 밖으로 넘치지 않�
   expect(await question.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   await page.screenshot({ path: `test-results/branches-${test.info().project.name}.png`, fullPage: true });
 });
+
+test('결과 선택이 우선이며 기록 작업은 점검 마무리에서 펼친다', async ({ page }) => {
+  await openNetwork(page);
+  await expect(page.locator('.result-question button')).toHaveCount(2);
+  await expect(page.locator('.step-actions .button-primary')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '미해결로 기록', exact: true })).toBeHidden();
+  await expect(page.getByRole('button', { name: '해결됐어요', exact: true })).toBeHidden();
+  await page.getByRole('button', { name: '다음 확인', exact: true }).click();
+  await expect(page.getByText('2번째 확인', { exact: true })).toBeVisible();
+  await page.locator('.diagnosis-finish > summary').click();
+  await page.getByRole('button', { name: '미해결로 기록', exact: true }).click();
+  await expect(page.getByRole('heading', { name: '추가 확인이 필요해요.' })).toBeFocused();
+  await expect(page.getByRole('region', { name: '점검 이력', exact: true })).toContainText('추가 확인 필요');
+});
