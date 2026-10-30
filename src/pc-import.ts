@@ -58,7 +58,11 @@ export const cmdCollector = powerShellForCmd(windowsCollector);
 export const macCollector = String.raw`result=$({
   printf 'hanno-specs-v1\tmacos\n'
   model=$(sysctl -n hw.model 2>/dev/null)
-  case "$model" in MacBook*) kind=laptop ;; iMac*|Macmini*|MacPro*|MacStudio*) kind=desktop ;; *) kind=unknown ;; esac
+  case "$model" in
+    (MacBook*) kind=laptop ;;
+    (iMac*|Macmini*|MacPro*|MacStudio*) kind=desktop ;;
+    (*) kind=unknown ;;
+  esac
   printf 'nickname\t%s\ndeviceType\t%s\nos\tmacos\n' "$model" "$kind"
   printf 'osVersion\t%s\n' "$(sw_vers -productVersion 2>/dev/null)"
   cpu=$(sysctl -n machdep.cpu.brand_string 2>/dev/null)
@@ -76,7 +80,11 @@ export const linuxCollector = String.raw`result=$({
   printf 'hanno-specs-v1\tlinux\n'
   model=$(cat /sys/devices/virtual/dmi/id/product_name 2>/dev/null)
   chassis=$(cat /sys/class/dmi/id/chassis_type 2>/dev/null)
-  case "$chassis" in 8|9|10|14) kind=laptop ;; 3|4|5|6|7|11|13) kind=desktop ;; *) kind=unknown ;; esac
+  case "$chassis" in
+    (8|9|10|14) kind=laptop ;;
+    (3|4|5|6|7|11|13) kind=desktop ;;
+    (*) kind=unknown ;;
+  esac
   printf 'nickname\t%s\ndeviceType\t%s\nos\tlinux\n' "$model" "$kind"
   awk -F= '$1 == "PRETTY_NAME" { gsub(/^"|"$/, "", $2); print "osVersion\t" $2; exit }' /etc/os-release 2>/dev/null
   awk -F: '/^model name/ { sub(/^[[:space:]]+/, "", $2); print "cpu\t" $2; exit }' /proc/cpuinfo 2>/dev/null
