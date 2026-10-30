@@ -1,19 +1,21 @@
-import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
+import { lazy, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import { MantineProvider, Select, TextInput, Textarea } from '@mantine/core';
 import { formTheme } from './form-theme';
 import { guides, topics, type Guide, type Topic, type IconName, type ResultChoice } from './content';
-import PcProfilePanel from './PcProfile';
-import ShellLab from './ShellLab';
+import AsyncPanel from './AsyncPanel';
 import SettingsVisual from './SettingsVisual';
 import DiagnosisHistory from './DiagnosisHistory';
 import { createDiagnosisRecord, diagnosisReport, HISTORY_LIMIT, NOTE_LIMIT, newHistoryId, readDiagnosisHistory, upsertDiagnosisRecord, writeDiagnosisHistory, type DiagnosisRecord, type DiagnosisStatus } from './diagnosis-history';
-import { Dictionary, KnowledgeQuiz } from './LearningLibrary';
 import { guideGroups, filterGuides } from './guide-categories';
 import { readPcProfile, profileLines, type PcProfile } from './pc-profile';
 import { deleteGuideProgress, readGuideProgress, saveGuideProgress, type GuideProgress, type GuideAnswer } from './guide-progress';
 import { appHref, readAppRoute, type AppRoute, type LearnMode, type View } from './app-route';
 
 type Theme = 'system' | 'light' | 'dark';
+const PcProfilePanel = lazy(() => import('./PcProfile'));
+const ShellLab = lazy(() => import('./ShellLab'));
+const Dictionary = lazy(() => import('./LearningLibrary').then(module => ({ default: module.Dictionary })));
+const KnowledgeQuiz = lazy(() => import('./LearningLibrary').then(module => ({ default: module.KnowledgeQuiz })));
 const navigationItems: { view: View; label: string; icon: IconName }[] = [
   { view: 'help', label: '문제 해결', icon: 'SquaresFour' },
   { view: 'learn', label: '컴퓨터 이해하기', icon: 'BookOpen' },
@@ -291,7 +293,7 @@ export default function App() {
       {view === 'help' ? <section className="help-intro" aria-labelledby="page-title"><h1 id="page-title" tabIndex={-1}>컴퓨터의 문제, 한눈에 짚어보세요.</h1><p>증상을 검색하거나 아래에서 골라 하나씩 확인해요.</p></section> :
       <section className="page-intro" aria-labelledby="page-title"><h1 id="page-title" tabIndex={-1}>{view === 'pc' ? '내 PC 알아보기' : view === 'lab' ? '명령어 연습' : '컴퓨터 이해하기'}</h1><p>{view === 'pc' ? '사양을 확인하고 내 PC 기록을 남겨요.' : view === 'lab' ? '가상 폴더에서 명령어를 직접 실행하며 익혀요.' : '부품의 역할부터 기본 용어까지, 내 속도로 알아가요.'}</p></section>}
       <section className="search-section" aria-label="가이드 검색"><div className="search-heading"><Icon name="MagnifyingGlass" /><label htmlFor="search">무엇이 궁금한가요?</label></div><TextInput className="search-field" id="search" type="search" maxLength={200} value={query} onChange={e => setQuery(e.target.value)} placeholder="예: 화면이 안 나와요, RAM, 운영체제" autoComplete="off" rightSection={query && <button className="icon-button" aria-label="검색어 지우기" onClick={() => setQuery('')}><Icon name="X" /></button>} rightSectionPointerEvents="all" rightSectionWidth={44}/><span className="search-scope">Windows PC 기초 가이드</span></section>
-      {keyword ? <section className="results" aria-labelledby="result-title"><div className="section-heading"><h2 id="result-title">검색 결과</h2><p role="status">{filteredGuides.length + filteredTopics.length}개를 찾았어요.</p></div>{!filteredGuides.length && !filteredTopics.length && <div className="empty"><Icon name="MagnifyingGlass" /><h3>일치하는 가이드가 없어요.</h3><p>‘화면’, ‘비프음’, ‘RAM’처럼 짧은 단어로 다시 찾아보세요.</p><button className="button button-secondary" onClick={() => setQuery('')}>전체 가이드 보기</button></div>}<div className="result-list">{filteredGuides.map(g => <button className="result-row" key={g.id} onClick={() => openGuide(g.id)}><span className="result-symbol"><Icon name={guideIcon(g)} /></span><span><small>문제 해결</small><strong>{g.title}</strong><span>{g.summary}</span></span><Icon name="ArrowRight" /></button>)}{filteredTopics.map(t => <button className="result-row" key={t.id} onClick={() => setArticleId(t.id)}><span className="result-symbol"><Icon name={topicIcon(t)} /></span><span><small>{t.category}</small><strong>{t.title}</strong><span>{t.summary}</span></span><Icon name="ArrowRight" /></button>)}</div></section> : view === 'help' ? <>
+      <AsyncPanel key={`${view}:${learnMode}`} >{keyword ? <section className="results" aria-labelledby="result-title"><div className="section-heading"><h2 id="result-title">검색 결과</h2><p role="status">{filteredGuides.length + filteredTopics.length}개를 찾았어요.</p></div>{!filteredGuides.length && !filteredTopics.length && <div className="empty"><Icon name="MagnifyingGlass" /><h3>일치하는 가이드가 없어요.</h3><p>‘화면’, ‘비프음’, ‘RAM’처럼 짧은 단어로 다시 찾아보세요.</p><button className="button button-secondary" onClick={() => setQuery('')}>전체 가이드 보기</button></div>}<div className="result-list">{filteredGuides.map(g => <button className="result-row" key={g.id} onClick={() => openGuide(g.id)}><span className="result-symbol"><Icon name={guideIcon(g)} /></span><span><small>문제 해결</small><strong>{g.title}</strong><span>{g.summary}</span></span><Icon name="ArrowRight" /></button>)}{filteredTopics.map(t => <button className="result-row" key={t.id} onClick={() => setArticleId(t.id)}><span className="result-symbol"><Icon name={topicIcon(t)} /></span><span><small>{t.category}</small><strong>{t.title}</strong><span>{t.summary}</span></span><Icon name="ArrowRight" /></button>)}</div></section> : view === 'help' ? <>
         {savedProgress && <section className="resume-card" aria-label="이어서 점검"><div><span>이 브라우저에 저장된 점검</span><h2>{guides.find(guide => guide.id === savedProgress.guideId)?.title}</h2><p>{savedProgress.step + 1}번째 단계부터 이어갈 수 있어요. 사이트 데이터를 지우면 이 기록도 사라져요.</p></div><div className="resume-actions"><button type="button" className="button button-primary" onClick={() => openGuide(savedProgress.guideId)}>이어서 점검</button><button type="button" className="text-button" onClick={clearProgress}>기록 삭제</button></div></section>}
         <a className="history-jump text-button" href="#diagnosis-history">점검 이력 {history.length}개 보기<Icon name="ArrowRight" /></a>
         <section id="symptoms" className="symptoms" aria-labelledby="symptom-title">
@@ -304,6 +306,6 @@ export default function App() {
         <DiagnosisHistory records={history} onChange={changeHistory} onRestart={id => openGuide(id, true)} />
         <section className="learning-strip"><span className="learning-strip-symbol"><Icon name="Cpu" /></span><div><h2>RAM이 뭔지 몰라도 괜찮아요.</h2><p>컴퓨터를 이루는 부품과 기본 개념을 알아보세요.</p></div><button className="button button-secondary" onClick={() => switchView('learn')}>컴퓨터 이해하기<Icon name="ArrowRight" /></button></section>
       </> : view === 'pc' ? <PcProfilePanel profile={profile} onSave={setProfile} onTopic={setArticleId} onGuide={openGuide}/>: view === 'lab' ? <ShellLab onTopic={setArticleId}/>: <><div className="learning-modes" role="group" id="learn-start" aria-label="학습 방식"><button type="button" aria-pressed={learnMode === 'explore'} onClick={() => setLearnMode('explore')}>부품과 기초</button><button type="button" aria-pressed={learnMode === 'dictionary'} onClick={() => setLearnMode('dictionary')}>용어 사전</button><button type="button" aria-pressed={learnMode === 'quiz'} onClick={() => setLearnMode('quiz')}>이해도 퀴즈</button></div>{learnMode === 'explore' ? <><HardwareExplorer openTopic={setArticleId}/><ConceptSection title="부품 다음은, 기본 개념." description="운영체제와 명령어 창의 역할을 알아봐요." id="concept-title" items={topics.filter(t => ['os', 'shell'].includes(t.id))} openTopic={setArticleId}/><ConceptSection title="Windows에서 직접 해보기" description="설정과 도구를 이해하면 일상적인 문제도 덜 낯설어요." id="windows-title" items={topics.filter(t => t.category === 'Windows 기초')} openTopic={setArticleId}/></> : learnMode === 'dictionary' ? <Dictionary onTopic={setArticleId}/> : <KnowledgeQuiz onTopic={setArticleId}/>}</>}
-    </main><footer className="site-footer"><strong>한눈</strong><p>내 컴퓨터를 이해하는 가장 작은 시작.</p><span>Windows PC 기초 가이드</span></footer><Article topic={topics.find(t => t.id === articleId)} close={() => setArticleId(undefined)}/>
+    </AsyncPanel></main><footer className="site-footer"><strong>한눈</strong><p>내 컴퓨터를 이해하는 가장 작은 시작.</p><span>Windows PC 기초 가이드</span></footer><Article topic={topics.find(t => t.id === articleId)} close={() => setArticleId(undefined)}/>
   </></MantineProvider>;
 }
