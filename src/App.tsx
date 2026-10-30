@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import { MantineProvider, Select, TextInput, Textarea } from '@mantine/core';
 import { formTheme } from './form-theme';
 import { guides, topics, type Guide, type Topic, type IconName, type ResultChoice } from './content';
@@ -11,8 +11,15 @@ import { Dictionary, KnowledgeQuiz } from './LearningLibrary';
 import { guideGroups, filterGuides } from './guide-categories';
 import { readPcProfile, profileLines, type PcProfile } from './pc-profile';
 import { deleteGuideProgress, readGuideProgress, saveGuideProgress, type GuideProgress, type GuideAnswer } from './guide-progress';
+import { appHref, readAppRoute, type AppRoute, type LearnMode, type View } from './app-route';
 
 type Theme = 'system' | 'light' | 'dark';
+const navigationItems: { view: View; label: string; icon: IconName }[] = [
+  { view: 'help', label: '문제 해결', icon: 'SquaresFour' },
+  { view: 'learn', label: '컴퓨터 이해하기', icon: 'BookOpen' },
+  { view: 'pc', label: '내 PC 알아보기', icon: 'Desktop' },
+  { view: 'lab', label: '명령어 연습', icon: 'TerminalWindow' },
+];
 const topicIcons: Record<string, IconName> = { cpu: 'Cpu', ram: 'Memory', ssd: 'HardDrives', gpu: 'GraphicsCard', os: 'Desktop', shell: 'TerminalWindow' };
 function topicIcon(topic: Topic): IconName { return topic.icon ?? topicIcons[topic.id] ?? 'BookOpen'; }
 function guideIcon(guide: Guide): IconName { return guide.icon ?? (guide.id === 'display' ? 'Monitor' : 'SpeakerHigh'); }
@@ -24,6 +31,14 @@ function readTheme(): Theme {
 }
 function Article({ topic, close }: { topic: Topic | undefined; close: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const [shareStatus, setShareStatus] = useState('');
+  useEffect(() => { setShareStatus(''); }, [topic?.id]);
+  async function copyLink() {
+    if (!topic) return;
+    const url = new URL(appHref({ ...readAppRoute(), topicId: topic.id, query: '' }), window.location.href);
+    try { await navigator.clipboard.writeText(url.href); setShareStatus('설명 링크를 복사했어요.'); }
+    catch { setShareStatus('복사할 수 없어요. 주소창의 링크를 직접 복사해 주세요.'); }
+  }
   useEffect(() => {
     if (topic && !ref.current?.open) ref.current?.showModal();
     else if (!topic) ref.current?.close();
@@ -39,7 +54,7 @@ function Article({ topic, close }: { topic: Topic | undefined; close: () => void
       <h2 id="article-title">{topic.title}</h2><p className="article-lead">{topic.summary}</p>
       <div className="article-body">{topic.paragraphs.map(p => <p key={p}>{p}</p>)}</div>
       <aside className="practice"><div className="practice-heading"><Icon name="Desktop" /><h3>내 컴퓨터에서 확인하기</h3></div><p>{topic.exercise}</p><small>Windows 11 기준. 버전이나 기기에 따라 메뉴가 다를 수 있어요.</small></aside>
-      <button className="button button-secondary article-close" onClick={close}>확인했어요<Icon name="Check" /></button>
+      <div className="article-actions"><button className="button button-secondary article-close" onClick={close}>확인했어요<Icon name="Check" /></button><button className="text-button" onClick={copyLink}><Icon name="Copy" />설명 링크 복사</button></div>{shareStatus && <p role="status" className="copy-status">{shareStatus}</p>}
     </article>}
   </dialog>;
 }
@@ -125,8 +140,13 @@ export function Diagnosis({ guide, onTopic, onGuide, onProgress, onArchive, init
     try { await navigator.clipboard.writeText(report); setCopyStatus('복사했어요. 모델명과 실제 결과를 덧붙여 전달하세요.'); }
     catch { setCopyStatus('복사할 수 없어요. 확인한 단계와 결과를 직접 기록해 주세요.'); }
   }
+  async function copyGuideLink() {
+    const url = new URL(appHref({ view: 'help', guideId: guide.id, learnMode: 'explore', query: '' }), window.location.href);
+    try { await navigator.clipboard.writeText(url.href); setCopyStatus('가이드 링크를 복사했어요.'); }
+    catch { setCopyStatus('복사할 수 없어요. 주소창의 링크를 직접 복사해 주세요.'); }
+  }
   return <section className="diagnosis" aria-labelledby="guide-title">
-    <div className="diagnosis-heading"><div><span className="guide-kicker">선택한 증상</span><h2 id="guide-title">{guide.title}</h2></div><span className="guide-scope"><Icon name="ShieldCheck" />외부 점검부터</span></div>
+    <div className="diagnosis-heading"><div><span className="guide-kicker">선택한 증상</span><h2 id="guide-title" tabIndex={-1}>{guide.title}</h2></div><span className="guide-scope"><Icon name="ShieldCheck" />외부 점검부터</span></div>
     {guide.variants && <div className="guide-variants"><h3>어떤 상황에 가장 가까운가요?</h3><div>{guide.variants.map(option => <button key={option.id} aria-pressed={variant === option.id} onClick={() => { if (option.guideId) { onGuide(option.guideId); return; } setAnswers([]); setVariant(option.id); setStep(option.step); setDone(false); setReviewed([]); setCopyStatus(''); record(option.step, [], option.id, []); }}><span><strong>{option.title}</strong><span>{option.description}</span></span><Icon name={variant === option.id ? 'Check' : 'CaretRight'} /></button>)}</div></div>}
     <div className="diagnosis-workspace">
       <aside className="checklist"><h3>확인할 순서</h3><ol aria-label="점검 순서">{guide.steps.map((item, i) => <li key={item.title}><button className={`${!done && i === step ? 'is-current' : ''} ${reviewed.includes(i) ? 'is-reviewed' : ''}`} onClick={() => { setStep(i); setDone(false); setCopyStatus(''); record(i, reviewed); }} aria-current={!done && i === step ? 'step' : undefined}><span className="step-index">{reviewed.includes(i) ? <Icon name="Check" /> : i + 1}</span><span>{item.title}</span>{!done && i === step && <Icon name="CaretRight" />}</button></li>)}</ol><div className="checklist-foot"><Icon name="Info" /><p>익숙하지 않은 내부 작업은<br/>공식 지원을 받아 진행하세요.</p></div></aside>
@@ -143,7 +163,7 @@ export function Diagnosis({ guide, onTopic, onGuide, onProgress, onArchive, init
           <details className="diagnosis-note"><summary>결과 메모 남기기 (선택)</summary><Textarea label="결과 메모" description={`최대 ${NOTE_LIMIT}자. 확인한 상황이나 해결 방법을 적어 두세요.`} placeholder="예: 모니터 입력을 HDMI 2로 바꾸니 화면이 나왔어요." value={note} maxLength={NOTE_LIMIT} autosize minRows={2} maxRows={6} onChange={event => { const value = event.currentTarget.value; setNote(value); record(step, reviewed, variant, answers, value); }} /><small>{note.length} / {NOTE_LIMIT}자</small></details>
           <details className="diagnosis-finish"><summary>점검 마무리</summary><p>이미 해결됐거나 점검을 멈추려면 결과를 기록해요. 진행 중인 점검은 자동으로 저장돼요.</p><div><button className="button button-secondary" onClick={() => finishCheck('resolved', [...reviewed.filter(index => index < step), step], answers.filter(answer => answer.step < step))}><Icon name="Check" />해결됐어요</button><button type="button" className="button button-secondary" onClick={() => finishCheck('unresolved', reviewed, answers)}>미해결로 기록</button></div></details>
         </>}
-      </div>{answers.length > 0 && <details className="answer-history"><summary>선택한 확인 결과 {answers.length}개</summary><ul>{answers.map(answer => <li key={answer.step}><span>{guide.steps[answer.step].question}</span><strong>{guide.steps[answer.step].choices?.find(choice => choice.id === answer.choiceId)?.label}</strong><button type="button" className="text-button" aria-label={`${answer.step + 1}번째 확인 결과 변경`} onClick={() => { setStep(answer.step); setDone(false); setCopyStatus(''); shouldFocus.current = true; record(answer.step, reviewed); }}>결과 변경</button></li>)}</ul></details>}<div className="guide-tools"><div><span>이 단계의 용어</span>{relatedTopics.map(topic => <button key={topic.id} onClick={() => onTopic(topic.id)}>{topic.title}</button>)}</div><button className="text-button" onClick={copyReport}><Icon name="Copy" />점검 기록 복사</button></div>{copyStatus && <p role="status" className="copy-status">{copyStatus}</p>}</div>
+      </div>{answers.length > 0 && <details className="answer-history"><summary>선택한 확인 결과 {answers.length}개</summary><ul>{answers.map(answer => <li key={answer.step}><span>{guide.steps[answer.step].question}</span><strong>{guide.steps[answer.step].choices?.find(choice => choice.id === answer.choiceId)?.label}</strong><button type="button" className="text-button" aria-label={`${answer.step + 1}번째 확인 결과 변경`} onClick={() => { setStep(answer.step); setDone(false); setCopyStatus(''); shouldFocus.current = true; record(answer.step, reviewed); }}>결과 변경</button></li>)}</ul></details>}<div className="guide-tools"><div><span>이 단계의 용어</span>{relatedTopics.map(topic => <button key={topic.id} onClick={() => onTopic(topic.id)}>{topic.title}</button>)}</div><button className="text-button" onClick={copyGuideLink}><Icon name="Copy" />가이드 링크 복사</button><button className="text-button" onClick={copyReport}><Icon name="Copy" />점검 기록 복사</button></div>{copyStatus && <p role="status" className="copy-status">{copyStatus}</p>}</div>
     </div>
     <details className="source-details"><summary><Icon name="BookOpen" />참고 자료와 안내 범위<Icon name="CaretDown" /></summary><p>참고: <a href={guide.source} target="_blank" rel="noreferrer">{guide.sourceName}</a>. 검토일 {guide.sourceDate ?? '2026.10.26'}.</p><p>기기별 매뉴얼을 우선 확인하세요. 이 가이드는 고장을 확정하지 않으며, 내부 부품의 분해나 교체를 안내하지 않습니다.</p></details>
   </section>;
@@ -157,26 +177,66 @@ function ConceptSection({ title, description, id, items, openTopic }: { title: s
   return <section className="concepts" aria-labelledby={id}><div className="section-heading"><h2 id={id}>{title}</h2><p>{description}</p></div><div className="concept-grid">{items.map(topic => <button className="concept-item" key={topic.id} onClick={() => openTopic(topic.id)}><Icon name={topicIcon(topic)}/><div><h3>{topic.title}</h3><p>{topic.summary}</p><span>설명과 실습 보기<Icon name="ArrowRight"/></span></div></button>)}</div></section>;
 }
 export default function App() {
-  const [view, setView] = useState<'help' | 'learn' | 'pc' | 'lab'>('help');
-  function switchView(nextView: typeof view) {
-    setView(nextView);
-    setQuery('');
+  const [route, setRoute] = useState<AppRoute>(readAppRoute);
+  const { view, learnMode, topicId: articleId, query } = route;
+  const selected = route.guideId ?? 'display';
+  function navigate(next: AppRoute, replace = false) {
+    const href = appHref(next);
+    if (href !== window.location.pathname + window.location.search + window.location.hash) {
+      window.history[replace ? 'replaceState' : 'pushState'](next.topicId ? { hannoTopic: true } : null, '', href);
+    }
+    setRoute(next);
+  }
+  function setQuery(value: string) { navigate({ ...route, query: value.slice(0, 200) }, true); }
+  function setLearnMode(mode: LearnMode) { navigate({ ...route, learnMode: mode, query: '' }); }
+  function setArticleId(id: string | undefined) {
+    if (!id && window.history.state?.hannoTopic) { window.history.back(); return; }
+    navigate({ ...route, topicId: id }, !id);
+  }
+  function switchView(nextView: View) {
+    navigate({ ...route, view: nextView, query: '', topicId: undefined });
     requestAnimationFrame(() => {
       document.getElementById('page-title')?.focus({ preventScroll: true });
       window.scrollTo({ top: 0, behavior: 'instant' });
     });
   }
-  const [selected, setSelected] = useState('display');
-  const [learnMode, setLearnMode] = useState<'explore' | 'dictionary' | 'quiz'>('explore');
+  function followView(event: MouseEvent<HTMLAnchorElement>, nextView: View) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    switchView(nextView);
+  }
+  function followHome(event: MouseEvent<HTMLAnchorElement>) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    setInitialProgress(null);
+    setGuideInstance(value => value + 1);
+    navigate(readAppRoute(''));
+    requestAnimationFrame(() => {
+      document.getElementById('page-title')?.focus({ preventScroll: true });
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    });
+  }
   const [guideFilter, setGuideFilter] = useState('all');
   const [guideLimit, setGuideLimit] = useState(6);
   const [savedProgress, setSavedProgress] = useState<GuideProgress | null>(() => readGuideProgress(guides));
   const [history, setHistory] = useState<DiagnosisRecord[]>(readDiagnosisHistory);
-  const [initialProgress, setInitialProgress] = useState<GuideProgress | null>(null);
+  const [initialProgress, setInitialProgress] = useState<GuideProgress | null>(() => {
+    const saved = readGuideProgress(guides);
+    return route.guideId && saved?.guideId === route.guideId ? saved : null;
+  });
   const [guideInstance, setGuideInstance] = useState(0);
   const visibleGuides = filterGuides(guides, guideFilter);
   const shownGuides = visibleGuides.slice(0, guideLimit);
-  function openGuide(id: string, fresh = false) { if (!visibleGuides.some(guide => guide.id === id)) setGuideFilter('all'); setInitialProgress(!fresh && savedProgress?.guideId === id ? savedProgress : null); setGuideInstance(value => value + 1); setSelected(id); setView('help'); setQuery(''); requestAnimationFrame(() => document.querySelector('.diagnosis')?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })); }
+  function openGuide(id: string, fresh = false) {
+    if (!visibleGuides.some(guide => guide.id === id)) setGuideFilter('all');
+    setInitialProgress(!fresh && savedProgress?.guideId === id ? savedProgress : null);
+    setGuideInstance(value => value + 1);
+    navigate({ ...route, guideId: id, view: 'help', query: '', topicId: undefined });
+    requestAnimationFrame(() => {
+      document.querySelector('.diagnosis')?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+      document.getElementById('guide-title')?.focus({ preventScroll: true });
+    });
+  }
   function changeHistory(records: DiagnosisRecord[]): boolean {
     if (!writeDiagnosisHistory(records)) return false;
     setHistory(records);
@@ -192,8 +252,6 @@ export default function App() {
     if (saveGuideProgress(progress, guides)) { setSavedProgress(progress); setInitialProgress(progress); }
   }
   function clearProgress() { deleteGuideProgress(); if (savedProgress?.guideId === selected) { setInitialProgress(null); setGuideInstance(value => value + 1); } setSavedProgress(null); }
-  const [query, setQuery] = useState('');
-  const [articleId, setArticleId] = useState<string>();
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [profile, setProfile] = useState<PcProfile | null>(readPcProfile);
   useEffect(() => { document.documentElement.dataset.theme = theme; try { localStorage.setItem('hanno-theme', theme); } catch { /* The selection remains available in memory. */ } }, [theme]);
@@ -201,12 +259,38 @@ export default function App() {
   const filteredGuides = guides.filter(g => `${g.title} ${g.summary} ${g.tags.join(' ')}`.toLocaleLowerCase().includes(keyword));
   const filteredTopics = topics.filter(t => `${t.title} ${t.summary} ${t.category} ${t.paragraphs.join(' ')}`.toLocaleLowerCase().includes(keyword));
   const currentGuide = guides.find(g => g.id === selected) ?? guides[0];
+  useEffect(() => {
+    function restoreRoute() {
+      const next = readAppRoute();
+      if (next.view !== view || next.guideId !== route.guideId) {
+        const saved = readGuideProgress(guides);
+        setSavedProgress(saved);
+        setInitialProgress(saved?.guideId === (next.guideId ?? 'display') ? saved : null);
+        setGuideInstance(value => value + 1);
+        requestAnimationFrame(() => document.getElementById(next.view === 'help' && next.guideId ? 'guide-title' : 'page-title')?.focus({ preventScroll: true }));
+      }
+      setRoute(next);
+    }
+    window.addEventListener('popstate', restoreRoute);
+    return () => window.removeEventListener('popstate', restoreRoute);
+  }, [view, route.guideId]);
+  useEffect(() => {
+    if (route.guideId && view === 'help' && !route.topicId && !route.query) {
+      document.querySelector('.diagnosis')?.scrollIntoView({ block: 'start' });
+    }
+    // Only a direct guide URL should move the initial viewport.
+  }, []);
+  useEffect(() => {
+    const topic = topics.find(item => item.id === articleId);
+    const title = topic?.title ?? (query ? `검색: ${query}` : view === 'help' ? route.guideId ? currentGuide.title : '컴퓨터 가이드' : view === 'learn' ? learnMode === 'dictionary' ? '용어 사전' : learnMode === 'quiz' ? '이해도 퀴즈' : '컴퓨터 이해하기' : view === 'pc' ? '내 PC 알아보기' : '명령어 연습');
+    document.title = `${title} | 한눈`;
+  }, [view, route.guideId, learnMode, articleId, query, currentGuide.title]);
   return <MantineProvider theme={formTheme} defaultColorScheme="auto" forceColorScheme={theme === 'system' ? undefined : theme}><><a className="skip-link" href="#main">본문으로 이동</a>
-    <header className="site-header"><div className="header-inner"><a href="#" className="brand" onClick={() => switchView('help')}>한눈<span>컴퓨터 가이드</span></a><nav aria-label="주요 메뉴"><button aria-current={view === 'help' ? 'page' : undefined} onClick={() => switchView('help')}><Icon name="SquaresFour" />문제 해결</button><button aria-current={view === 'learn' ? 'page' : undefined} onClick={() => switchView('learn')}><Icon name="BookOpen" />컴퓨터 이해하기</button><button aria-current={view === 'pc' ? 'page' : undefined} onClick={() => switchView('pc')}><Icon name="Desktop" />내 PC 알아보기</button><button aria-current={view === 'lab' ? 'page' : undefined} onClick={() => switchView('lab')}><Icon name="TerminalWindow" />명령어 연습</button></nav><div className="theme-control"><Icon name={theme === 'dark' ? 'Moon' : theme === 'light' ? 'Sun' : 'Desktop'} /><Select className="theme-select" aria-label="화면 테마" value={theme} allowDeselect={false} data={[{ value: 'system', label: '시스템 테마' }, { value: 'light', label: '밝은 화면' }, { value: 'dark', label: '어두운 화면' }]} onChange={value => { if (value) setTheme(value as Theme); }}/></div></div></header>
+    <header className="site-header"><div className="header-inner"><a href={appHref(readAppRoute(''))} className="brand" onClick={followHome}>한눈<span>컴퓨터 가이드</span></a><nav aria-label="주요 메뉴">{navigationItems.map(item => <a key={item.view} href={appHref({ ...route, view: item.view, query: '', topicId: undefined })} aria-current={view === item.view ? 'page' : undefined} onClick={event => followView(event, item.view)}><Icon name={item.icon} />{item.label}</a>)}</nav><div className="theme-control"><Icon name={theme === 'dark' ? 'Moon' : theme === 'light' ? 'Sun' : 'Desktop'} /><Select className="theme-select" aria-label="화면 테마" value={theme} allowDeselect={false} data={[{ value: 'system', label: '시스템 테마' }, { value: 'light', label: '밝은 화면' }, { value: 'dark', label: '어두운 화면' }]} onChange={value => { if (value) setTheme(value as Theme); }}/></div></div></header>
     <main id="main" className={`page-shell ${view === 'help' ? 'help-page' : ''}`}>
       {view === 'help' ? <section className="help-intro" aria-labelledby="page-title"><h1 id="page-title" tabIndex={-1}>컴퓨터의 문제, 한눈에 짚어보세요.</h1><p>증상을 검색하거나 아래에서 골라 하나씩 확인해요.</p></section> :
       <section className="page-intro" aria-labelledby="page-title"><h1 id="page-title" tabIndex={-1}>{view === 'pc' ? '내 PC 알아보기' : view === 'lab' ? '명령어 연습' : '컴퓨터 이해하기'}</h1><p>{view === 'pc' ? '사양을 확인하고 내 PC 기록을 남겨요.' : view === 'lab' ? '가상 폴더에서 명령어를 직접 실행하며 익혀요.' : '부품의 역할부터 기본 용어까지, 내 속도로 알아가요.'}</p></section>}
-      <section className="search-section" aria-label="가이드 검색"><div className="search-heading"><Icon name="MagnifyingGlass" /><label htmlFor="search">무엇이 궁금한가요?</label></div><TextInput className="search-field" id="search" type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="예: 화면이 안 나와요, RAM, 운영체제" autoComplete="off" rightSection={query && <button className="icon-button" aria-label="검색어 지우기" onClick={() => setQuery('')}><Icon name="X" /></button>} rightSectionPointerEvents="all" rightSectionWidth={44}/><span className="search-scope">Windows PC 기초 가이드</span></section>
+      <section className="search-section" aria-label="가이드 검색"><div className="search-heading"><Icon name="MagnifyingGlass" /><label htmlFor="search">무엇이 궁금한가요?</label></div><TextInput className="search-field" id="search" type="search" maxLength={200} value={query} onChange={e => setQuery(e.target.value)} placeholder="예: 화면이 안 나와요, RAM, 운영체제" autoComplete="off" rightSection={query && <button className="icon-button" aria-label="검색어 지우기" onClick={() => setQuery('')}><Icon name="X" /></button>} rightSectionPointerEvents="all" rightSectionWidth={44}/><span className="search-scope">Windows PC 기초 가이드</span></section>
       {keyword ? <section className="results" aria-labelledby="result-title"><div className="section-heading"><h2 id="result-title">검색 결과</h2><p role="status">{filteredGuides.length + filteredTopics.length}개를 찾았어요.</p></div>{!filteredGuides.length && !filteredTopics.length && <div className="empty"><Icon name="MagnifyingGlass" /><h3>일치하는 가이드가 없어요.</h3><p>‘화면’, ‘비프음’, ‘RAM’처럼 짧은 단어로 다시 찾아보세요.</p><button className="button button-secondary" onClick={() => setQuery('')}>전체 가이드 보기</button></div>}<div className="result-list">{filteredGuides.map(g => <button className="result-row" key={g.id} onClick={() => openGuide(g.id)}><span className="result-symbol"><Icon name={guideIcon(g)} /></span><span><small>문제 해결</small><strong>{g.title}</strong><span>{g.summary}</span></span><Icon name="ArrowRight" /></button>)}{filteredTopics.map(t => <button className="result-row" key={t.id} onClick={() => setArticleId(t.id)}><span className="result-symbol"><Icon name={topicIcon(t)} /></span><span><small>{t.category}</small><strong>{t.title}</strong><span>{t.summary}</span></span><Icon name="ArrowRight" /></button>)}</div></section> : view === 'help' ? <>
         {savedProgress && <section className="resume-card" aria-label="이어서 점검"><div><span>이 브라우저에 저장된 점검</span><h2>{guides.find(guide => guide.id === savedProgress.guideId)?.title}</h2><p>{savedProgress.step + 1}번째 단계부터 이어갈 수 있어요. 사이트 데이터를 지우면 이 기록도 사라져요.</p></div><div className="resume-actions"><button type="button" className="button button-primary" onClick={() => openGuide(savedProgress.guideId)}>이어서 점검</button><button type="button" className="text-button" onClick={clearProgress}>기록 삭제</button></div></section>}
         <a className="history-jump text-button" href="#diagnosis-history">점검 이력 {history.length}개 보기<Icon name="ArrowRight" /></a>
@@ -216,7 +300,7 @@ export default function App() {
           <div id="symptom-options" className="symptom-options">{shownGuides.map(g => <button key={g.id} className={`symptom-option ${selected === g.id ? 'is-selected' : ''}`} aria-pressed={selected === g.id} onClick={() => openGuide(g.id)}><span className="symptom-symbol"><Icon name={guideIcon(g)} /></span><span className="symptom-copy"><strong>{g.title}</strong><span>{g.summary}</span></span><span className="selection-mark">{selected === g.id ? <><Icon name="Check" /><span className="sr-only">선택됨</span></> : <Icon name="CaretRight" />}</span></button>)}</div>
           {visibleGuides.length > 6 && <div className="symptom-more"><span role="status">{shownGuides.length} / {visibleGuides.length}개 표시</span><button type="button" aria-controls="symptom-options" onClick={() => setGuideLimit(limit => limit >= visibleGuides.length ? 6 : limit + 6)}>{guideLimit >= visibleGuides.length ? '처음 6개만 보기' : `증상 ${Math.min(6, visibleGuides.length - guideLimit)}개 더 보기`}<Icon name="CaretDown" className={guideLimit >= visibleGuides.length ? 'is-up' : ''} /></button></div>}
         </section>
-        <Diagnosis key={`${selected}:${guideInstance}`} guide={currentGuide} onTopic={setArticleId} onGuide={openGuide} onProgress={updateProgress} onArchive={archiveDiagnosis} initialProgress={initialProgress} profile={profile}/>
+        <Diagnosis key={`${selected}:${guideInstance}`} guide={currentGuide} onTopic={setArticleId} onGuide={openGuide} onProgress={updateProgress} onArchive={archiveDiagnosis} initialProgress={initialProgress?.guideId === currentGuide.id ? initialProgress : null} profile={profile}/>
         <DiagnosisHistory records={history} onChange={changeHistory} onRestart={id => openGuide(id, true)} />
         <section className="learning-strip"><span className="learning-strip-symbol"><Icon name="Cpu" /></span><div><h2>RAM이 뭔지 몰라도 괜찮아요.</h2><p>컴퓨터를 이루는 부품과 기본 개념을 알아보세요.</p></div><button className="button button-secondary" onClick={() => switchView('learn')}>컴퓨터 이해하기<Icon name="ArrowRight" /></button></section>
       </> : view === 'pc' ? <PcProfilePanel profile={profile} onSave={setProfile} onTopic={setArticleId} onGuide={openGuide}/>: view === 'lab' ? <ShellLab onTopic={setArticleId}/>: <><div className="learning-modes" id="learn-start" aria-label="학습 방식"><button type="button" aria-pressed={learnMode === 'explore'} onClick={() => setLearnMode('explore')}>부품과 기초</button><button type="button" aria-pressed={learnMode === 'dictionary'} onClick={() => setLearnMode('dictionary')}>용어 사전</button><button type="button" aria-pressed={learnMode === 'quiz'} onClick={() => setLearnMode('quiz')}>이해도 퀴즈</button></div>{learnMode === 'explore' ? <><HardwareExplorer openTopic={setArticleId}/><ConceptSection title="부품 다음은, 기본 개념." description="운영체제와 명령어 창의 역할을 알아봐요." id="concept-title" items={topics.filter(t => ['os', 'shell'].includes(t.id))} openTopic={setArticleId}/><ConceptSection title="Windows에서 직접 해보기" description="설정과 도구를 이해하면 일상적인 문제도 덜 낯설어요." id="windows-title" items={topics.filter(t => t.category === 'Windows 기초')} openTopic={setArticleId}/></> : learnMode === 'dictionary' ? <Dictionary onTopic={setArticleId}/> : <KnowledgeQuiz onTopic={setArticleId}/>}</>}

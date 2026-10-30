@@ -43,8 +43,8 @@ test('다른 메뉴를 다녀와도 최신 점검 단계가 유지된다', async
   await page.goto('/');
   await page.getByRole('button', { name: '다음 확인' }).click();
   await page.getByRole('button', { name: '다음 확인' }).click();
-  await page.getByRole('navigation', { name: '주요 메뉴' }).getByRole('button', { name: '내 PC 알아보기' }).click();
-  await page.getByRole('navigation', { name: '주요 메뉴' }).getByRole('button', { name: '문제 해결' }).click();
+  await page.getByRole('navigation', { name: '주요 메뉴' }).getByRole('link', { name: '내 PC 알아보기' }).click();
+  await page.getByRole('navigation', { name: '주요 메뉴' }).getByRole('link', { name: '문제 해결' }).click();
   await expect(page.getByText('3번째 확인')).toBeVisible();
   await expect(page.locator('.checklist button.is-reviewed')).toHaveCount(2);
 });

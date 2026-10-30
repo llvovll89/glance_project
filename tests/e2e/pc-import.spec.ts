@@ -8,7 +8,7 @@ const windowsResult = JSON.stringify({
 
 async function openImport(page: Page) {
   await page.goto('/');
-  await page.getByRole('navigation', { name: '주요 메뉴' }).getByRole('button', { name: '내 PC 알아보기' }).click();
+  await page.getByRole('navigation', { name: '주요 메뉴' }).getByRole('link', { name: '내 PC 알아보기' }).click();
   await page.getByRole('button', { name: '사양 가져오기' }).click();
   await expect(page.getByRole('heading', { name: '내 PC 사양 가져오기' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -39,7 +39,7 @@ test('클립보드 결과를 미리 보고 적용한 뒤 저장한다', async ({
   await page.getByRole('button', { name: '내 PC 사양 저장' }).click();
   await expect(page.getByText('이 브라우저에 저장했어요. 새로고침해도 다시 볼 수 있어요.')).toBeVisible();
   await page.reload();
-  await page.getByRole('navigation', { name: '주요 메뉴' }).getByRole('button', { name: '내 PC 알아보기' }).click();
+  await page.getByRole('navigation', { name: '주요 메뉴' }).getByRole('link', { name: '내 PC 알아보기' }).click();
   await expect(page.getByRole('textbox', { name: 'CPU' })).toHaveValue('Test CPU');
 });
 
