@@ -1,0 +1,17 @@
+.article-comparison { margin-top: 26px; }
+.article-comparison table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 13px; line-height: 1.7; }
+.article-comparison caption { text-align: left; font-size: 15px; font-weight: 650; margin-bottom: 12px; }
+.article-comparison th, .article-comparison td { padding: 12px 10px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.article-comparison thead { background: var(--soft); }
+.article-comparison tbody th { font-weight: 600; }
+.article-related, .article-sources { margin-top: 28px; }
+.article-related h3, .article-sources h3 { font-size: 15px; line-height: 1.6; margin-bottom: 10px; }
+.article-related>div { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.article-related button, .article-sources a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--accent); font-size: 13px; line-height: 1.7; text-align: left; }
+.article-related .icon, .article-sources .icon { flex-shrink: 0; width: 16px; height: 16px; }
+.article-sources ul { list-style: none; padding: 0; }
+.article-sources a { text-decoration: underline; text-underline-offset: 3px; }
+.article-sources p { margin-top: 10px; color: var(--muted); font-size: 12px; line-height: 1.8; }
+@media (max-width: 767px) {
+  .article-comparison th, .article-comparison td { padding: 10px 6px; font-size: 12px; }
+}

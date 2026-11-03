@@ -1,3 +1,4 @@
+import { displayKnowledgeTopics } from './display-knowledge';
 import { networkRecoveryGuides, networkRecoveryTopics } from './network-recovery';
 import { expandedGuides, expandedTopics } from './expanded-content';
 import { libraryGuides, libraryTopics } from './library-content';
@@ -5,7 +6,7 @@ import { additionalSymptomGuides, additionalSymptomTopics } from './additional-s
 import { extendedSymptomGuides, extendedSymptomTopics } from './extended-symptoms';
 import { applyGuideBranches } from './guide-branches';
 export type IconName = 'ArrowRight' | 'ArrowLeft' | 'CaretRight' | 'CaretDown' | 'Check' | 'CheckCircle' | 'X' | 'MagnifyingGlass' | 'Monitor' | 'SpeakerHigh' | 'Cpu' | 'Memory' | 'HardDrives' | 'GraphicsCard' | 'TerminalWindow' | 'SquaresFour' | 'ArrowSquareOut' | 'Copy' | 'Info' | 'BookOpen' | 'Sun' | 'Moon' | 'Desktop' | 'ShieldCheck' | 'PlugsConnected';
-export type Topic = { id: string; title: string; category: string; summary: string; paragraphs: string[]; exercise: string; icon?: IconName; shortLabel?: string };
+export type Topic = { id: string; title: string; category: string; summary: string; paragraphs: string[]; exercise: string; icon?: IconName; shortLabel?: string; comparison?: { caption: string; columns: string[]; rows: string[][] }; relatedTopics?: string[]; sources?: { name: string; url: string }[] };
 export const topics: Topic[] = [
   { id: 'cpu', title: 'CPU', category: '부품', summary: '프로그램의 명령을 처리하는 장치', paragraphs: ['CPU는 프로그램의 명령을 실행하고 계산합니다. 프로그램과 작업에 따라 중요한 성능 지표가 달라서, 코어 수나 동작 속도 하나만으로 모든 성능을 판단하기는 어렵습니다.', '작업 관리자에서 사용률을 볼 수 있어요. 사용률이 높다는 사실만으로 고장을 의미하지는 않습니다.'], exercise: 'Ctrl + Shift + Esc로 작업 관리자를 열고 성능 탭에서 CPU를 확인해 보세요.' },
   { id: 'ram', title: 'RAM', category: '부품', summary: '실행 중인 작업의 데이터를 잠시 보관하는 메모리', paragraphs: ['RAM에는 실행 중인 프로그램이 사용하는 데이터가 올라갑니다. 일반적인 RAM의 내용은 전원을 끄면 사라지므로 사진이나 문서를 오래 보관하는 저장장치와 역할이 달라요.', '메모리 용량이 부족하면 프로그램 전환이 느려질 수 있습니다. 하지만 느려짐에는 여러 원인이 있어 사용량과 함께 확인해야 해요.'], exercise: '작업 관리자 > 성능 > 메모리에서 현재 사용량과 전체 용량을 확인해 보세요.' },
@@ -14,7 +15,7 @@ export const topics: Topic[] = [
   { id: 'os', title: '운영체제', category: '기본 개념', summary: '하드웨어와 프로그램이 함께 동작하도록 관리하는 소프트웨어', paragraphs: ['Windows, macOS, Linux 같은 운영체제는 메모리와 파일, 장치 등을 관리하고 프로그램이 실행되는 환경을 제공합니다.', '앱에서 문제가 생겨도 원인이 항상 운영체제인 것은 아닙니다. 앱 하나의 문제인지, 여러 앱에서 같은 문제가 생기는지 구분하면 확인 범위를 좁힐 수 있어요.'], exercise: 'Windows 설정 > 시스템 > 정보에서 Windows 버전과 장치 사양을 확인해 보세요.' },
   { id: 'shell', title: '터미널과 셸', category: '명령어 입문', summary: '명령을 입력하는 창과, 명령을 해석하는 프로그램', paragraphs: ['터미널은 글자로 명령을 입력하고 결과를 보는 인터페이스입니다. 셸은 입력한 명령을 해석하고 실행하는 프로그램이에요.', 'Windows Terminal에서 PowerShell 같은 셸을 사용할 수 있습니다. 명령 프롬프트(CMD)는 Windows 명령을, PowerShell은 명령과 객체를 다루며, Bash는 Linux와 macOS 등에서 사용하는 셸의 하나예요. Windows에서는 WSL이나 Git Bash 등으로 Bash를 사용할 수도 있어요. 셸이 다르면 같은 목적의 명령도 다를 수 있어요.'], exercise: 'PowerShell에서 Get-Location을 입력하면 현재 위치가 표시됩니다. Get-ChildItem은 현재 위치의 항목을 나열합니다. 두 명령 모두 파일을 수정하거나 삭제하지 않습니다.' },
 ];
-topics.push(...expandedTopics, ...libraryTopics, ...additionalSymptomTopics, ...extendedSymptomTopics, ...networkRecoveryTopics);
+topics.push(...expandedTopics, ...libraryTopics, ...additionalSymptomTopics, ...extendedSymptomTopics, ...networkRecoveryTopics, ...displayKnowledgeTopics);
 export type ResultChoice = { id: string; label: string; target: number | 'resolved' };
 export type Guide = { id: string; title: string; summary: string; tags: string[]; icon?: IconName; relatedTopics?: string[]; variants?: { id: string; title: string; description: string; guideId?: string; step: number }[]; steps: { title: string; body: string; tip?: string; check?: string; next?: string; question?: string; choices?: ResultChoice[]; relatedTopics?: string[]; visual?: { icon: IconName; title: string; detail: string } }[]; source: string; sourceName: string; sourceDate?: string };
 export const guides: Guide[] = [
