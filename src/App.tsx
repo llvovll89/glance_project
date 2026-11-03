@@ -1,4 +1,5 @@
-import { lazy, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
+import { Icon, topicIcon } from './Icon';
+import { lazy, useEffect, useRef, useState, type MouseEvent } from 'react';
 import { MantineProvider, Select, TextInput, Textarea } from '@mantine/core';
 import { formTheme } from './form-theme';
 import { guides, topics, type Guide, type Topic, type IconName, type ResultChoice } from './content';
@@ -12,6 +13,8 @@ import { deleteGuideProgress, readGuideProgress, saveGuideProgress, type GuidePr
 import { appHref, readAppRoute, type AppRoute, type LearnMode, type View } from './app-route';
 
 type Theme = 'system' | 'light' | 'dark';
+const KnowledgeExplorer = lazy(() => import('./KnowledgeExplorer'));
+const TopicArticle = lazy(() => import('./TopicArticle'));
 const PcProfilePanel = lazy(() => import('./PcProfile'));
 const ShellLab = lazy(() => import('./ShellLab'));
 const Dictionary = lazy(() => import('./LearningLibrary').then(module => ({ default: module.Dictionary })));
@@ -22,43 +25,9 @@ const navigationItems: { view: View; label: string; icon: IconName }[] = [
   { view: 'pc', label: '내 PC 알아보기', icon: 'Desktop' },
   { view: 'lab', label: '명령어 연습', icon: 'TerminalWindow' },
 ];
-const topicIcons: Record<string, IconName> = { cpu: 'Cpu', ram: 'Memory', ssd: 'HardDrives', gpu: 'GraphicsCard', os: 'Desktop', shell: 'TerminalWindow' };
-function topicIcon(topic: Topic): IconName { return topic.icon ?? topicIcons[topic.id] ?? 'BookOpen'; }
 function guideIcon(guide: Guide): IconName { return guide.icon ?? (guide.id === 'display' ? 'Monitor' : 'SpeakerHigh'); }
-function Icon({ name, className = '' }: { name: IconName; className?: string }) {
-  return <span aria-hidden="true" className={`icon ${className}`} style={{ '--icon': `url("/icons/${name}.svg")` } as CSSProperties} />;
-}
 function readTheme(): Theme {
   try { const value = localStorage.getItem('hanno-theme'); return value === 'light' || value === 'dark' ? value : 'system'; } catch { return 'system'; }
-}
-function Article({ topic, close }: { topic: Topic | undefined; close: () => void }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const [shareStatus, setShareStatus] = useState('');
-  useEffect(() => { setShareStatus(''); }, [topic?.id]);
-  async function copyLink() {
-    if (!topic) return;
-    const url = new URL(appHref({ ...readAppRoute(), topicId: topic.id, query: '' }), window.location.href);
-    try { await navigator.clipboard.writeText(url.href); setShareStatus('설명 링크를 복사했어요.'); }
-    catch { setShareStatus('복사할 수 없어요. 주소창의 링크를 직접 복사해 주세요.'); }
-  }
-  useEffect(() => {
-    if (topic && !ref.current?.open) ref.current?.showModal();
-    else if (!topic) ref.current?.close();
-    if (!topic) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = previousOverflow; };
-  }, [topic]);
-  return <dialog ref={ref} onCancel={close} onClick={event => { if (event.target === event.currentTarget) close(); }} aria-labelledby="article-title" className="article-dialog">
-    {topic && <article className="article-content">
-      <div className="article-toolbar"><span>{topic.category}</span><button className="icon-button" aria-label="설명 닫기" onClick={close}><Icon name="X" /></button></div>
-      <div className="article-symbol"><Icon name={topicIcon(topic)} /></div>
-      <h2 id="article-title">{topic.title}</h2><p className="article-lead">{topic.summary}</p>
-      <div className="article-body">{topic.paragraphs.map(p => <p key={p}>{p}</p>)}</div>
-      <aside className="practice"><div className="practice-heading"><Icon name="Desktop" /><h3>내 컴퓨터에서 확인하기</h3></div><p>{topic.exercise}</p><small>Windows 11 기준. 버전이나 기기에 따라 메뉴가 다를 수 있어요.</small></aside>
-      <div className="article-actions"><button className="button button-secondary article-close" onClick={close}>확인했어요<Icon name="Check" /></button><button className="text-button" onClick={copyLink}><Icon name="Copy" />설명 링크 복사</button></div>{shareStatus && <p role="status" className="copy-status">{shareStatus}</p>}
-    </article>}
-  </dialog>;
 }
 function StepVisual({ guide, step }: { guide: Guide; step: number }) {
   const visual = guide.id === 'display'
@@ -169,14 +138,6 @@ export function Diagnosis({ guide, onTopic, onGuide, onProgress, onArchive, init
     </div>
     <details className="source-details"><summary><Icon name="BookOpen" />참고 자료와 안내 범위<Icon name="CaretDown" /></summary><p>참고: <a href={guide.source} target="_blank" rel="noreferrer">{guide.sourceName}</a>. 검토일 {guide.sourceDate ?? '2026.10.26'}.</p><p>기기별 매뉴얼을 우선 확인하세요. 이 가이드는 고장을 확정하지 않으며, 내부 부품의 분해나 교체를 안내하지 않습니다.</p></details>
   </section>;
-}
-function HardwareExplorer({ openTopic }: { openTopic: (id: string) => void }) {
-  const [selected, setSelected] = useState('cpu');
-  const current = topics.find(t => t.id === selected)!;
-  return <section className="explorer" aria-labelledby="explorer-title"><div className="section-heading"><h2 id="explorer-title">부품을 누르면, 역할이 보여요.</h2><p>이름보다 하는 일부터 알아볼까요?</p></div><div className="explorer-workspace"><div className="parts-board" role="group" aria-label="알아볼 부품 선택">{topics.filter(t => t.category === '부품').map(t => <button key={t.id} className={`part part-${t.id} ${selected === t.id ? 'is-selected' : ''}`} aria-pressed={selected === t.id} onClick={() => setSelected(t.id)}><Icon name={topicIcon(t)} /><strong>{t.title}</strong><span>{t.shortLabel ?? ({ cpu: '명령 처리', ram: '작업 공간', ssd: '파일 보관', gpu: '화면과 그래픽' } as Record<string, string>)[t.id]}</span><Icon name="CaretRight" className="part-arrow" /></button>)}<p>역할을 살펴보는 개념도예요. 실제 배치와 크기는 기기에 따라 달라요.</p></div><article className="part-description" key={selected}><span className="part-category">부품 알아보기</span><h3>{current.title}</h3><p className="part-summary">{current.summary}</p><p>{current.paragraphs[0]}</p><button className="button button-primary" onClick={() => openTopic(selected)}>설명과 실습 보기<Icon name="ArrowRight" /></button></article></div></section>;
-}
-function ConceptSection({ title, description, id, items, openTopic }: { title: string; description: string; id: string; items: Topic[]; openTopic: (id: string) => void }) {
-  return <section className="concepts" aria-labelledby={id}><div className="section-heading"><h2 id={id}>{title}</h2><p>{description}</p></div><div className="concept-grid">{items.map(topic => <button className="concept-item" key={topic.id} onClick={() => openTopic(topic.id)}><Icon name={topicIcon(topic)}/><div><h3>{topic.title}</h3><p>{topic.summary}</p><span>설명과 실습 보기<Icon name="ArrowRight"/></span></div></button>)}</div></section>;
 }
 export default function App() {
   const [route, setRoute] = useState<AppRoute>(readAppRoute);
@@ -305,7 +266,7 @@ export default function App() {
         <Diagnosis key={`${selected}:${guideInstance}`} guide={currentGuide} onTopic={setArticleId} onGuide={openGuide} onProgress={updateProgress} onArchive={archiveDiagnosis} initialProgress={initialProgress?.guideId === currentGuide.id ? initialProgress : null} profile={profile}/>
         <DiagnosisHistory records={history} onChange={changeHistory} onRestart={id => openGuide(id, true)} />
         <section className="learning-strip"><span className="learning-strip-symbol"><Icon name="Cpu" /></span><div><h2>RAM이 뭔지 몰라도 괜찮아요.</h2><p>컴퓨터를 이루는 부품과 기본 개념을 알아보세요.</p></div><button className="button button-secondary" onClick={() => switchView('learn')}>컴퓨터 이해하기<Icon name="ArrowRight" /></button></section>
-      </> : view === 'pc' ? <PcProfilePanel profile={profile} onSave={setProfile} onTopic={setArticleId} onGuide={openGuide}/>: view === 'lab' ? <ShellLab onTopic={setArticleId}/>: <><div className="learning-modes" role="group" id="learn-start" aria-label="학습 방식"><button type="button" aria-pressed={learnMode === 'explore'} onClick={() => setLearnMode('explore')}>부품과 기초</button><button type="button" aria-pressed={learnMode === 'dictionary'} onClick={() => setLearnMode('dictionary')}>용어 사전</button><button type="button" aria-pressed={learnMode === 'quiz'} onClick={() => setLearnMode('quiz')}>이해도 퀴즈</button></div>{learnMode === 'explore' ? <><HardwareExplorer openTopic={setArticleId}/><ConceptSection title="부품 다음은, 기본 개념." description="운영체제와 명령어 창의 역할을 알아봐요." id="concept-title" items={topics.filter(t => ['os', 'shell'].includes(t.id))} openTopic={setArticleId}/><ConceptSection title="Windows에서 직접 해보기" description="설정과 도구를 이해하면 일상적인 문제도 덜 낯설어요." id="windows-title" items={topics.filter(t => t.category === 'Windows 기초')} openTopic={setArticleId}/></> : learnMode === 'dictionary' ? <Dictionary onTopic={setArticleId}/> : <KnowledgeQuiz onTopic={setArticleId}/>}</>}
-    </AsyncPanel></main><footer className="site-footer"><strong>한눈</strong><p>내 컴퓨터를 이해하는 가장 작은 시작.</p><span>Windows PC 기초 가이드</span></footer><Article topic={topics.find(t => t.id === articleId)} close={() => setArticleId(undefined)}/>
+      </> : view === 'pc' ? <PcProfilePanel profile={profile} onSave={setProfile} onTopic={setArticleId} onGuide={openGuide}/>: view === 'lab' ? <ShellLab onTopic={setArticleId}/>: <><div className="learning-modes" role="group" id="learn-start" aria-label="학습 방식"><button type="button" aria-pressed={learnMode === 'explore'} onClick={() => setLearnMode('explore')}>부품과 기초</button><button type="button" aria-pressed={learnMode === 'dictionary'} onClick={() => setLearnMode('dictionary')}>용어 사전</button><button type="button" aria-pressed={learnMode === 'quiz'} onClick={() => setLearnMode('quiz')}>이해도 퀴즈</button></div>{learnMode === 'explore' ? <KnowledgeExplorer openTopic={setArticleId}/> : learnMode === 'dictionary' ? <Dictionary onTopic={setArticleId}/> : <KnowledgeQuiz onTopic={setArticleId}/>}</>}
+    </AsyncPanel></main><footer className="site-footer"><strong>한눈</strong><p>내 컴퓨터를 이해하는 가장 작은 시작.</p><span>Windows PC 기초 가이드</span></footer>{articleId && <AsyncPanel key="topic-article"><TopicArticle topic={topics.find(t => t.id === articleId)} onTopic={setArticleId} close={() => setArticleId(undefined)}/></AsyncPanel>}
   </></MantineProvider>;
 }

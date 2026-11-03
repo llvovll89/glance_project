@@ -56,6 +56,21 @@ try {
   for (const topic of topics) {
     assert.ok(topic.paragraphs.length >= 2 && topic.exercise.trim(), `${topic.id}: explanation and exercise`);
     if (topic.icon) assert.ok(existsSync(`public/icons/${topic.icon}.svg`));
+    for (const id of topic.relatedTopics ?? []) {
+      assert.ok(id !== topic.id && topics.some(item => item.id === id), `${topic.id}: related topic ${id}`);
+    }
+    if (topic.comparison) {
+      assert.ok(topic.comparison.caption.trim() && topic.comparison.columns.length >= 2);
+      assert.ok(topic.comparison.rows.length > 0);
+      for (const row of topic.comparison.rows) {
+        assert.equal(row.length, topic.comparison.columns.length, `${topic.id}: comparison columns`);
+        assert.ok(row.every(cell => cell.trim()));
+      }
+    }
+    for (const source of topic.sources ?? []) {
+      assert.ok(source.name.trim());
+      assert.equal(new URL(source.url).protocol, 'https:');
+    }
   }
   const power = guides.find(g => g.id === 'power');
   assert.equal(power.variants.find(v => v.id === 'fans-on').guideId, 'display');

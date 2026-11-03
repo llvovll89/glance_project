@@ -18,7 +18,7 @@ for (const key of initial) {
   bytes += content.length;
   gzip += gzipSync(content).length;
 }
-for (const feature of ['src/PcProfile.tsx', 'src/ShellLab.tsx', 'src/LearningLibrary.tsx']) {
+for (const feature of ['src/PcProfile.tsx', 'src/ShellLab.tsx', 'src/LearningLibrary.tsx', 'src/KnowledgeExplorer.tsx', 'src/TopicArticle.tsx']) {
   assert.ok(manifest[feature]?.isDynamicEntry, `Expected a deferred feature: ${feature}`);
   assert.ok(!initial.has(feature), `Feature is part of the initial download: ${feature}`);
 }
